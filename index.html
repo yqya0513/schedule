@@ -190,18 +190,22 @@
         }
 
         .time-grid-container {
-            max-height: calc(100vh - 170px);
+            height: calc(100vh - 200px);
+            min-height: 400px;
             overflow-y: auto;
             margin-top: 12px;
             border: 1px solid var(--border-color);
             border-radius: 6px;
             position: relative;
+            background: var(--card-bg);
         }
 
         .time-grid {
             position: relative;
-            background: var(--card-bg);
             height: 1440px;
+            min-height: 1440px;
+            max-height: 1440px;
+            width: 100%;
             padding-left: 45px;
             box-sizing: border-box;
             cursor: pointer;
@@ -242,13 +246,15 @@
             position: absolute;
             background-color: rgba(74, 144, 226, 0.2);
             border-left: 4px solid var(--primary-color);
-            padding: 4px 6px;
-            font-size: 12px;
+            padding: 2px 4px;
+            font-size: 11px;
+            line-height: 1.2;
             border-radius: 2px;
             cursor: pointer;
             overflow: hidden;
             box-sizing: border-box;
             z-index: 10;
+            word-break: break-all;
         }
 
         .modal {
@@ -345,12 +351,12 @@
 
     <header>
         <nav class="tab-nav">
-            <button class="tab-btn" onclick="switchTab('todo')">TODO</button>
-            <button class="tab-btn active" onclick="switchTab('schedule')">予定</button>
-            <button class="tab-btn" onclick="switchTab('daily')">毎日</button>
-            <button class="tab-btn" onclick="switchTab('monthly')">毎月</button>
-            <button class="tab-btn" onclick="switchTab('recurring')">定期</button>
-            <button class="tab-btn" onclick="switchTab('settings')">設定</button>
+            <button class="tab-btn" onclick="switchTab('todo', event)">TODO</button>
+            <button class="tab-btn active" onclick="switchTab('schedule', event)">予定</button>
+            <button class="tab-btn" onclick="switchTab('daily', event)">毎日</button>
+            <button class="tab-btn" onclick="switchTab('monthly', event)">毎月</button>
+            <button class="tab-btn" onclick="switchTab('recurring', event)">定期</button>
+            <button class="tab-btn" onclick="switchTab('settings', event)">設定</button>
         </nav>
     </header>
 
@@ -412,8 +418,8 @@
     <div id="edit-modal" class="modal">
         <div class="modal-content">
             <div class="modal-tab-nav">
-                <button class="modal-tab-btn active" id="modal-tab-add-btn" onclick="switchModalTab('add')">予定の追加</button>
-                <button class="modal-tab-btn" onclick="switchModalTab('daily-select')">毎日</button>
+                <button class="modal-tab-btn active" id="modal-tab-add-btn" onclick="switchModalTab('add', event)">予定の追加</button>
+                <button class="modal-tab-btn" onclick="switchModalTab('daily-select', event)">毎日</button>
             </div>
 
             <div id="modal-tab-add" class="modal-tab-content active">
@@ -567,14 +573,14 @@
         }
 
         function setSelectValue(prefix, timeStr) {
-            if (!timeStr) {
+            if (!timeStr || timeStr === 'null' || timeStr === 'undefined') {
                 document.getElementById(`${prefix}-hour`).value = '';
                 document.getElementById(`${prefix}-min`).value = '';
                 return;
             }
             const [h, m] = timeStr.split(':');
-            document.getElementById(`${prefix}-hour`).value = h;
-            document.getElementById(`${prefix}-min`).value = m;
+            document.getElementById(`${prefix}-hour`).value = h || '';
+            document.getElementById(`${prefix}-min`).value = m || '';
         }
 
         function getSelectValue(prefix) {
@@ -584,21 +590,22 @@
             return `${h}:${m}`;
         }
 
-        function switchTab(tabName) {
+        function switchTab(tabName, evt) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             
             document.getElementById(`tab-${tabName}`).classList.add('active');
-            if (event && event.currentTarget) {
-                event.currentTarget.classList.add('active');
+            if (evt && evt.currentTarget) {
+                evt.currentTarget.classList.add('active');
             }
 
             if (tabName === 'schedule') {
+                renderSchedule();
                 scrollToCurrentTimeMinusOneHour();
             }
         }
 
-        function switchModalTab(tabName) {
+        function switchModalTab(tabName, evt) {
             document.querySelectorAll('.modal-tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.modal-tab-btn').forEach(el => el.classList.remove('active'));
 
@@ -607,7 +614,7 @@
                 document.getElementById('modal-tab-add-btn').classList.add('active');
             } else if (tabName === 'daily-select') {
                 document.getElementById('modal-tab-daily-select').classList.add('active');
-                if (event && event.currentTarget) event.currentTarget.classList.add('active');
+                if (evt && evt.currentTarget) evt.currentTarget.classList.add('active');
                 renderModalDailyList();
             }
         }
@@ -661,7 +668,7 @@
         }
 
         function directInputSchedule(title, start, end) {
-            if (!start || !end || start === 'null' || end === 'null') {
+            if (!start || !end || start === 'null' || end === 'null' || start === 'undefined' || end === 'undefined') {
                 alert('開始時間と終了時間を設定してください。');
                 return;
             }
@@ -673,7 +680,7 @@
                 end: end
             });
 
-            renderSchedule();
+            switchTab('schedule');
         }
 
         function openDailyCreateModal() {
@@ -929,7 +936,11 @@
         }
 
         function timeToMinutes(timeStr) {
-            const [h, m] = timeStr.split(':').map(Number);
+            if (!timeStr) return 0;
+            const parts = timeStr.split(':');
+            if (parts.length < 2) return 0;
+            const h = parseInt(parts[0], 10) || 0;
+            const m = parseInt(parts[1], 10) || 0;
             return h * 60 + m;
         }
 
@@ -942,6 +953,7 @@
 
         function renderSchedule() {
             const grid = document.getElementById('schedule-grid');
+            if (!grid) return;
             grid.innerHTML = '';
 
             for (let i = 0; i < 24; i++) {
@@ -959,13 +971,14 @@
             timeLine.style.top = `${currentMin}px`;
             grid.appendChild(timeLine);
 
-            const items = schedules.map(s => ({
+            const validSchedules = schedules.filter(s => s && s.start && s.end);
+
+            const items = validSchedules.map(s => ({
                 ...s,
                 startMin: timeToMinutes(s.start),
                 endMin: timeToMinutes(s.end)
             })).sort((a, b) => a.startMin - b.startMin || (b.endMin - b.startMin) - (a.endMin - a.startMin));
 
-            // 1. 時間領域が重なる予定をグループ（クラスタ）に分割
             const clusters = [];
             let currentCluster = [];
             let clusterEnd = -1;
@@ -984,9 +997,10 @@
                 clusters.push(currentCluster);
             }
 
-            const gridWidth = grid.clientWidth - 45;
+            const container = document.getElementById('grid-container');
+            const availableWidth = (container ? container.clientWidth : grid.clientWidth) - 50;
+            const gridWidth = Math.max(availableWidth, 100);
 
-            // 2. クラスタごとにカラム割り当てと描画を行う
             clusters.forEach(cluster => {
                 const columns = [];
 
@@ -1014,7 +1028,8 @@
                     el.className = 'schedule-item';
                     
                     const top = item.startMin;
-                    const height = Math.max(item.endMin - item.startMin, 18);
+                    const duration = item.endMin - item.startMin;
+                    const height = Math.max(duration > 0 ? duration : 15, 15);
                     const itemWidth = Math.max((gridWidth / maxCols) - 2, 10);
                     const left = 45 + ((gridWidth / maxCols) * item.colIndex) + 1;
 
@@ -1036,6 +1051,7 @@
 
         function scrollToCurrentTimeMinusOneHour() {
             const container = document.getElementById('grid-container');
+            if (!container) return;
             const now = new Date();
             const currentMin = now.getHours() * 60 + now.getMinutes();
             const targetMin = Math.max(0, currentMin - 60);
@@ -1192,7 +1208,12 @@
             });
         }
 
-        // 初期ロード呼び出し
+        window.addEventListener('resize', () => {
+            if (document.getElementById('tab-schedule').classList.contains('active')) {
+                renderSchedule();
+            }
+        });
+
         populateTimeSelects();
         renderTodos();
         renderDailies();
