@@ -2,7 +2,8 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 画面固定とズーム防止の設定 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>タスク＆スケジュール管理</title>
     <style>
         :root {
@@ -18,6 +19,7 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+            touch-action: manipulation; /* ダブルタップズーム防止 */
         }
 
         body {
@@ -91,6 +93,7 @@
             color: #666;
         }
 
+        /* フォーカス時の自動ズームを防ぐため font-size を 16px に設定 */
         input[type="text"],
         input[type="number"],
         input[type="date"],
@@ -102,7 +105,7 @@
             padding: 10px;
             border: 1px solid var(--border-color);
             border-radius: 6px;
-            font-size: 14px;
+            font-size: 16px !important;
             background-color: #fff;
             display: block;
             -webkit-appearance: none;
@@ -189,7 +192,7 @@
 
         /* スケジュール（予定タブ）表示 */
         .time-grid-container {
-            max-height: calc(100vh - 270px); /* タイトル削除分表示領域を拡大 */
+            max-height: calc(100vh - 270px);
             overflow-y: auto;
             margin-top: 16px;
             border: 1px solid var(--border-color);
