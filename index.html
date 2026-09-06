@@ -108,6 +108,7 @@
         select {
             width: 100% !important;
             max-width: 100% !important;
+            height: 42px !important; /* 縦の長さを内容の入力枠と同一に固定 */
             box-sizing: border-box !important;
             padding: 10px;
             border: 1px solid var(--border-color);
@@ -189,15 +190,19 @@
             border-radius: 6px;
             margin-top: 16px;
             height: 1440px; /* 24時間 * 60px */
+            padding-left: 45px; /* 時間表記との被りを防ぐための余白 */
+            box-sizing: border-box;
         }
 
         .time-slot-line {
             position: absolute;
+            left: 0;
             width: 100%;
             border-top: 1px solid #f0f0f0;
             font-size: 10px;
             color: #999;
             padding-left: 4px;
+            pointer-events: none;
         }
 
         .schedule-item {
@@ -267,18 +272,43 @@
 
     <header>
         <nav class="tab-nav">
-            <button class="tab-btn active" onclick="switchTab('todo')">TODO</button>
+            <button class="tab-btn active" onclick="switchTab('schedule')">予定</button>
+            <button class="tab-btn" onclick="switchTab('todo')">TODO</button>
             <button class="tab-btn" onclick="switchTab('daily')">毎日</button>
             <button class="tab-btn" onclick="switchTab('monthly')">毎月</button>
             <button class="tab-btn" onclick="switchTab('recurring')">定期</button>
             <button class="tab-btn" onclick="switchTab('settings')">設定</button>
-            <button class="tab-btn" onclick="switchTab('schedule')">予定</button>
         </nav>
     </header>
 
     <div class="container">
+        <!-- 予定 タブ（一番左へ移動） -->
+        <div id="tab-schedule" class="tab-content active">
+            <div class="section-header">
+                <h2 class="section-title">予定</h2>
+            </div>
+            <div class="form-group">
+                <label>内容</label>
+                <input type="text" id="schedule-title">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>開始時間</label>
+                    <select id="schedule-start"></select>
+                </div>
+                <div class="form-group">
+                    <label>終了時間</label>
+                    <select id="schedule-end"></select>
+                </div>
+            </div>
+            <button class="btn-primary" onclick="addSchedule()">予定を追加</button>
+            <button class="btn-danger" style="width: 100%; margin-top: 8px;" onclick="clearTodaySchedule()">本日の予定を一括削除</button>
+
+            <div id="schedule-grid" class="time-grid"></div>
+        </div>
+
         <!-- TODO タブ -->
-        <div id="tab-todo" class="tab-content active">
+        <div id="tab-todo" class="tab-content">
             <div class="section-header">
                 <h2 class="section-title">TODO</h2>
             </div>
@@ -338,7 +368,7 @@
                 <input type="text" id="recurring-input">
             </div>
             <div class="form-group">
-                <label>周期・タイミング</label>
+                <label>日時・時間</label>
                 <input type="text" id="recurring-timing">
             </div>
             <button class="btn-primary" onclick="addRecurring()">追加</button>
@@ -359,31 +389,6 @@
                 <input type="file" id="import-file" style="display: none;" onchange="importData(event)" accept=".json">
             </div>
         </div>
-
-        <!-- 予定 タブ -->
-        <div id="tab-schedule" class="tab-content">
-            <div class="section-header">
-                <h2 class="section-title">予定</h2>
-            </div>
-            <div class="form-group">
-                <label>内容</label>
-                <input type="text" id="schedule-title">
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>開始時間</label>
-                    <input type="time" id="schedule-start" step="300" onchange="roundTo5Minutes(this)">
-                </div>
-                <div class="form-group">
-                    <label>終了時間</label>
-                    <input type="time" id="schedule-end" step="300" onchange="roundTo5Minutes(this)">
-                </div>
-            </div>
-            <button class="btn-primary" onclick="addSchedule()">予定を追加</button>
-            <button class="btn-danger" style="width: 100%; margin-top: 8px;" onclick="clearTodaySchedule()">本日の予定を一括削除</button>
-
-            <div id="schedule-grid" class="time-grid"></div>
-        </div>
     </div>
 
     <!-- 予定編集用モーダル -->
@@ -396,11 +401,11 @@
             </div>
             <div class="form-group">
                 <label>開始時間</label>
-                <input type="time" id="edit-start" step="300" onchange="roundTo5Minutes(this)">
+                <select id="edit-start"></select>
             </div>
             <div class="form-group">
                 <label>終了時間</label>
-                <input type="time" id="edit-end" step="300" onchange="roundTo5Minutes(this)">
+                <select id="edit-end"></select>
             </div>
             <div class="modal-actions">
                 <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
@@ -419,6 +424,25 @@
         let schedules = [];
         let currentEditId = null;
 
+        // 5分単位の時間選択肢を生成する初期化関数
+        function populateTimeSelects() {
+            const timeSelectIds = ['schedule-start', 'schedule-end', 'edit-start', 'edit-end'];
+            const options = ['<option value="">選択してください</option>'];
+
+            for (let h = 0; h < 24; h++) {
+                for (let m = 0; m < 60; m += 5) {
+                    const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                    options.push(`<option value="${timeStr}">${timeStr}</option>`);
+                }
+            }
+
+            const html = options.join('');
+            timeSelectIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = html;
+            });
+        }
+
         // タブ切り替え
         function switchTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -426,18 +450,6 @@
             
             document.getElementById(`tab-${tabName}`).classList.add('active');
             event.currentTarget.classList.add('active');
-        }
-
-        // 入力時間を強制的に5分刻みに丸める処理
-        function roundTo5Minutes(input) {
-            if (!input.value) return;
-            let [h, m] = input.value.split(':').map(Number);
-            m = Math.round(m / 5) * 5;
-            if (m === 60) {
-                h = (h + 1) % 24;
-                m = 0;
-            }
-            input.value = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
         }
 
         // TODO 追加
@@ -639,6 +651,9 @@
                 }
             });
 
+            // 左側の時間表記幅（45px分）を除いた可動領域を基準に配置
+            const gridWidth = grid.clientWidth - 45;
+
             items.forEach(item => {
                 const overlapping = items.filter(other => 
                     Math.max(item.startMin, other.startMin) < Math.min(item.endMin, other.endMin)
@@ -650,13 +665,13 @@
                 
                 const top = item.startMin;
                 const height = Math.max(item.endMin - item.startMin, 15);
-                const width = 100 / maxCols;
-                const left = width * item.colIndex;
+                const itemWidth = gridWidth / maxCols;
+                const left = 45 + (itemWidth * item.colIndex);
 
                 el.style.top = `${top}px`;
                 el.style.height = `${height}px`;
-                el.style.width = `${width}%`;
-                el.style.left = `${left}%`;
+                el.style.width = `${itemWidth}px`;
+                el.style.left = `${left}px`;
 
                 el.innerText = `${item.title} (${item.start}~${item.end})`;
                 el.onclick = () => openEditModal(item.id);
@@ -779,6 +794,7 @@
         }
 
         // 初期化
+        populateTimeSelects();
         renderSchedule();
     </script>
 </body>
