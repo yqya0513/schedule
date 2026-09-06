@@ -345,9 +345,9 @@
 
     <header>
         <nav class="tab-nav">
+            <button class="tab-btn" onclick="switchTab('todo')">TODO</button>
             <button class="tab-btn active" onclick="switchTab('schedule')">予定</button>
             <button class="tab-btn" onclick="switchTab('daily')">毎日</button>
-            <button class="tab-btn" onclick="switchTab('todo')">TODO</button>
             <button class="tab-btn" onclick="switchTab('monthly')">毎月</button>
             <button class="tab-btn" onclick="switchTab('recurring')">定期</button>
             <button class="tab-btn" onclick="switchTab('settings')">設定</button>
@@ -355,38 +355,6 @@
     </header>
 
     <div class="container">
-        <!-- 予定 タブ -->
-        <div id="tab-schedule" class="tab-content active">
-            <button class="btn-danger" style="width: 100%;" onclick="clearTodaySchedule()">本日の予定を一括削除</button>
-            <div class="time-grid-container" id="grid-container">
-                <div id="schedule-grid" class="time-grid" onclick="handleGridClick(event)"></div>
-            </div>
-        </div>
-
-        <!-- 毎日 タブ -->
-        <div id="tab-daily" class="tab-content">
-            <div class="form-group">
-                <label>内容</label>
-                <input type="text" id="daily-input">
-            </div>
-            <div class="form-group">
-                <label>開始時間</label>
-                <div class="time-select-group">
-                    <select id="daily-start-hour" class="wheel-scrollable"></select><span>時</span>
-                    <select id="daily-start-min" class="wheel-scrollable"></select><span>分</span>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>終了時間</label>
-                <div class="time-select-group">
-                    <select id="daily-end-hour" class="wheel-scrollable"></select><span>時</span>
-                    <select id="daily-end-min" class="wheel-scrollable"></select><span>分</span>
-                </div>
-            </div>
-            <button class="btn-primary" onclick="addDaily()">追加</button>
-            <ul id="daily-list" class="item-list"></ul>
-        </div>
-
         <!-- TODO タブ -->
         <div id="tab-todo" class="tab-content">
             <div class="form-group">
@@ -401,31 +369,29 @@
             <ul id="todo-list" class="item-list"></ul>
         </div>
 
+        <!-- 予定 タブ -->
+        <div id="tab-schedule" class="tab-content active">
+            <button class="btn-danger" style="width: 100%;" onclick="clearTodaySchedule()">本日の予定を一括削除</button>
+            <div class="time-grid-container" id="grid-container">
+                <div id="schedule-grid" class="time-grid" onclick="handleGridClick(event)"></div>
+            </div>
+        </div>
+
+        <!-- 毎日 タブ -->
+        <div id="tab-daily" class="tab-content">
+            <button class="btn-primary" style="margin-top:0;" onclick="openDailyCreateModal()">+ 新規追加</button>
+            <ul id="daily-list" class="item-list"></ul>
+        </div>
+
         <!-- 毎月 タブ -->
         <div id="tab-monthly" class="tab-content">
-            <div class="form-group">
-                <label>内容</label>
-                <input type="text" id="monthly-input">
-            </div>
-            <div class="form-group">
-                <label>日時・曜日</label>
-                <input type="text" id="monthly-timing">
-            </div>
-            <button class="btn-primary" onclick="addMonthly()">追加</button>
+            <button class="btn-primary" style="margin-top:0;" onclick="openMonthlyCreateModal()">+ 新規追加</button>
             <ul id="monthly-list" class="item-list"></ul>
         </div>
 
         <!-- 定期 タブ -->
         <div id="tab-recurring" class="tab-content">
-            <div class="form-group">
-                <label>内容</label>
-                <input type="text" id="recurring-input">
-            </div>
-            <div class="form-group">
-                <label>日時・時間</label>
-                <input type="text" id="recurring-timing">
-            </div>
-            <button class="btn-primary" onclick="addRecurring()">追加</button>
+            <button class="btn-primary" style="margin-top:0;" onclick="openRecurringCreateModal()">+ 新規追加</button>
             <ul id="recurring-list" class="item-list"></ul>
         </div>
 
@@ -487,10 +453,10 @@
         </div>
     </div>
 
-    <!-- 毎日タスク編集用モーダル -->
+    <!-- 毎日タスク追加・編集用モーダル -->
     <div id="daily-edit-modal" class="modal">
         <div class="modal-content">
-            <h3>「毎日」項目の編集</h3>
+            <h3 id="daily-modal-title">「毎日」項目の編集</h3>
             <div class="form-group" style="margin-top: 12px;">
                 <label>内容</label>
                 <input type="text" id="daily-edit-title">
@@ -511,8 +477,42 @@
             </div>
             <div class="modal-actions">
                 <button class="btn-cancel" onclick="closeDailyEditModal()">キャンセル</button>
-                <button class="btn-danger" onclick="deleteDailyFromModal()">削除</button>
+                <button class="btn-danger" id="daily-modal-delete-btn" onclick="deleteDailyFromModal()">削除</button>
                 <button class="btn-primary" style="margin-top:0;" onclick="saveDailyEdit()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 毎月・定期 汎用追加・編集用モーダル -->
+    <div id="timing-task-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="timing-modal-title">項目の編集</h3>
+            <div class="form-group" style="margin-top: 12px;">
+                <label>内容</label>
+                <input type="text" id="timing-edit-title">
+            </div>
+            <div class="form-group">
+                <label>開始時間</label>
+                <div class="time-select-group">
+                    <select id="timing-edit-start-hour" class="wheel-scrollable"></select><span>時</span>
+                    <select id="timing-edit-start-min" class="wheel-scrollable"></select><span>分</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>終了時間</label>
+                <div class="time-select-group">
+                    <select id="timing-edit-end-hour" class="wheel-scrollable"></select><span>時</span>
+                    <select id="timing-edit-end-min" class="wheel-scrollable"></select><span>分</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>日時・曜日</label>
+                <input type="text" id="timing-edit-value" placeholder="例: 1日, 毎週月曜日">
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeTimingModal()">キャンセル</button>
+                <button class="btn-danger" id="timing-modal-delete-btn" onclick="deleteTimingFromModal()">削除</button>
+                <button class="btn-primary" style="margin-top:0;" onclick="saveTimingEdit()">保存</button>
             </div>
         </div>
     </div>
@@ -525,10 +525,13 @@
         let schedules = [];
         let currentEditId = null;
         let currentDailyEditId = null;
+        
+        let currentTimingType = null; // 'monthly' or 'recurring'
+        let currentTimingEditId = null;
 
         function populateTimeSelects() {
-            const hourIds = ['edit-start-hour', 'edit-end-hour', 'daily-start-hour', 'daily-end-hour', 'daily-edit-start-hour', 'daily-edit-end-hour'];
-            const minIds = ['edit-start-min', 'edit-end-min', 'daily-start-min', 'daily-end-min', 'daily-edit-start-min', 'daily-edit-end-min'];
+            const hourIds = ['edit-start-hour', 'edit-end-hour', 'daily-edit-start-hour', 'daily-edit-end-hour', 'timing-edit-start-hour', 'timing-edit-end-hour'];
+            const minIds = ['edit-start-min', 'edit-end-min', 'daily-edit-start-min', 'daily-edit-end-min', 'timing-edit-start-min', 'timing-edit-end-min'];
 
             let hourHtml = '<option value="">--</option>';
             for (let h = 0; h < 24; h++) {
@@ -588,7 +591,9 @@
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             
             document.getElementById(`tab-${tabName}`).classList.add('active');
-            event.currentTarget.classList.add('active');
+            if (event && event.currentTarget) {
+                event.currentTarget.classList.add('active');
+            }
 
             if (tabName === 'schedule') {
                 scrollToCurrentTimeMinusOneHour();
@@ -604,7 +609,7 @@
                 document.getElementById('modal-tab-add-btn').classList.add('active');
             } else if (tabName === 'daily-select') {
                 document.getElementById('modal-tab-daily-select').classList.add('active');
-                event.currentTarget.classList.add('active');
+                if (event && event.currentTarget) event.currentTarget.classList.add('active');
                 renderModalDailyList();
             }
         }
@@ -638,21 +643,6 @@
             switchModalTab('add');
         }
 
-        // 毎日 追加
-        function addDaily() {
-            const input = document.getElementById('daily-input');
-            const start = getSelectValue('daily-start');
-            const end = getSelectValue('daily-end');
-
-            if (!input.value) return;
-
-            dailies.push({ id: Date.now(), text: input.value, start: start, end: end });
-            input.value = '';
-            setSelectValue('daily-start', '');
-            setSelectValue('daily-end', '');
-            renderDailies();
-        }
-
         function renderDailies() {
             const list = document.getElementById('daily-list');
             list.innerHTML = '';
@@ -666,42 +656,49 @@
                         <div style="font-weight:bold;">${escapeHtml(item.text)}</div>
                         <small style="color:#888;">${item.start || '--:--'} 〜 ${item.end || '--:--'}</small>
                     </div>
-                    <button class="btn-success" onclick="event.stopPropagation(); directInputSchedule(${item.id})">入力</button>
+                    <button class="btn-success" onclick="event.stopPropagation(); directInputSchedule('${escapeHtml(item.text)}', '${item.start}', '${item.end}')">入力</button>
                 `;
                 list.appendChild(li);
             });
         }
 
-        // 毎日タブの「入力」ボタンで直接予定表に反映
-        function directInputSchedule(id) {
-            const item = dailies.find(d => d.id === id);
-            if (!item) return;
-
-            if (!item.start || !item.end) {
+        function directInputSchedule(title, start, end) {
+            if (!start || !end || start === 'null' || end === 'null') {
                 alert('開始時間と終了時間を設定してください。');
                 return;
             }
 
             schedules.push({
                 id: Date.now(),
-                title: item.text,
-                start: item.start,
-                end: item.end
+                title: title,
+                start: start,
+                end: end
             });
 
             renderSchedule();
-            alert(`「${item.text}」を予定表に追加しました。`);
         }
 
-        // 毎日項目編集モーダル
+        function openDailyCreateModal() {
+            currentDailyEditId = null;
+            document.getElementById('daily-modal-title').innerText = '「毎日」項目の追加';
+            document.getElementById('daily-edit-title').value = '';
+            setSelectValue('daily-edit-start', '');
+            setSelectValue('daily-edit-end', '');
+            document.getElementById('daily-modal-delete-btn').style.display = 'none';
+
+            document.getElementById('daily-edit-modal').classList.add('open');
+        }
+
         function openDailyEditModal(id) {
             const item = dailies.find(d => d.id === id);
             if (!item) return;
 
             currentDailyEditId = id;
+            document.getElementById('daily-modal-title').innerText = '「毎日」項目の編集';
             document.getElementById('daily-edit-title').value = item.text;
             setSelectValue('daily-edit-start', item.start);
             setSelectValue('daily-edit-end', item.end);
+            document.getElementById('daily-modal-delete-btn').style.display = 'block';
 
             document.getElementById('daily-edit-modal').classList.add('open');
         }
@@ -718,11 +715,20 @@
 
             if (!title) return;
 
-            const item = dailies.find(d => d.id === currentDailyEditId);
-            if (item) {
-                item.text = title;
-                item.start = start;
-                item.end = end;
+            if (currentDailyEditId) {
+                const item = dailies.find(d => d.id === currentDailyEditId);
+                if (item) {
+                    item.text = title;
+                    item.start = start;
+                    item.end = end;
+                }
+            } else {
+                dailies.push({
+                    id: Date.now(),
+                    text: title,
+                    start: start,
+                    end: end
+                });
             }
 
             closeDailyEditModal();
@@ -734,6 +740,143 @@
             dailies = dailies.filter(d => d.id !== currentDailyEditId);
             closeDailyEditModal();
             renderDailies();
+        }
+
+        // --- 毎月・定期 共通処理 ---
+        function renderMonthlies() {
+            const list = document.getElementById('monthly-list');
+            list.innerHTML = '';
+            monthlies.forEach(item => {
+                const li = document.createElement('li');
+                li.className = 'item-card';
+                li.style.cursor = 'pointer';
+                li.onclick = () => openTimingEditModal('monthly', item.id);
+                li.innerHTML = `
+                    <div>
+                        <div style="font-weight:bold;">${escapeHtml(item.text)}</div>
+                        <small style="color:#888;">${item.start || '--:--'} 〜 ${item.end || '--:--'}${item.timing ? ' (' + escapeHtml(item.timing) + ')' : ''}</small>
+                    </div>
+                    <button class="btn-success" onclick="event.stopPropagation(); directInputSchedule('${escapeHtml(item.text)}', '${item.start}', '${item.end}')">入力</button>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        function renderRecurrings() {
+            const list = document.getElementById('recurring-list');
+            list.innerHTML = '';
+            recurrings.forEach(item => {
+                const li = document.createElement('li');
+                li.className = 'item-card';
+                li.style.cursor = 'pointer';
+                li.onclick = () => openTimingEditModal('recurring', item.id);
+                li.innerHTML = `
+                    <div>
+                        <div style="font-weight:bold;">${escapeHtml(item.text)}</div>
+                        <small style="color:#888;">${item.start || '--:--'} 〜 ${item.end || '--:--'}${item.timing ? ' (' + escapeHtml(item.timing) + ')' : ''}</small>
+                    </div>
+                    <button class="btn-success" onclick="event.stopPropagation(); directInputSchedule('${escapeHtml(item.text)}', '${item.start}', '${item.end}')">入力</button>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        function openMonthlyCreateModal() {
+            openTimingCreateModal('monthly');
+        }
+
+        function openRecurringCreateModal() {
+            openTimingCreateModal('recurring');
+        }
+
+        function openTimingCreateModal(type) {
+            currentTimingType = type;
+            currentTimingEditId = null;
+
+            const label = type === 'monthly' ? '毎月' : '定期';
+            document.getElementById('timing-modal-title').innerText = `「${label}」項目の追加`;
+            document.getElementById('timing-edit-title').value = '';
+            setSelectValue('timing-edit-start', '');
+            setSelectValue('timing-edit-end', '');
+            document.getElementById('timing-edit-value').value = '';
+            document.getElementById('timing-modal-delete-btn').style.display = 'none';
+
+            document.getElementById('timing-task-modal').classList.add('open');
+        }
+
+        function openTimingEditModal(type, id) {
+            currentTimingType = type;
+            currentTimingEditId = id;
+
+            const list = type === 'monthly' ? monthlies : recurrings;
+            const item = list.find(t => t.id === id);
+            if (!item) return;
+
+            const label = type === 'monthly' ? '毎月' : '定期';
+            document.getElementById('timing-modal-title').innerText = `「${label}」項目の編集`;
+            document.getElementById('timing-edit-title').value = item.text;
+            setSelectValue('timing-edit-start', item.start);
+            setSelectValue('timing-edit-end', item.end);
+            document.getElementById('timing-edit-value').value = item.timing || '';
+            document.getElementById('timing-modal-delete-btn').style.display = 'block';
+
+            document.getElementById('timing-task-modal').classList.add('open');
+        }
+
+        function closeTimingModal() {
+            document.getElementById('timing-task-modal').classList.remove('open');
+            currentTimingType = null;
+            currentTimingEditId = null;
+        }
+
+        function saveTimingEdit() {
+            const title = document.getElementById('timing-edit-title').value;
+            const start = getSelectValue('timing-edit-start');
+            const end = getSelectValue('timing-edit-end');
+            const timing = document.getElementById('timing-edit-value').value;
+
+            if (!title) return;
+
+            const list = currentTimingType === 'monthly' ? monthlies : recurrings;
+
+            if (currentTimingEditId) {
+                const item = list.find(t => t.id === currentTimingEditId);
+                if (item) {
+                    item.text = title;
+                    item.start = start;
+                    item.end = end;
+                    item.timing = timing;
+                }
+            } else {
+                list.push({
+                    id: Date.now(),
+                    text: title,
+                    start: start,
+                    end: end,
+                    timing: timing
+                });
+            }
+
+            closeTimingModal();
+            if (currentTimingType === 'monthly') {
+                renderMonthlies();
+            } else {
+                renderRecurrings();
+            }
+        }
+
+        function deleteTimingFromModal() {
+            if (!currentTimingEditId || !currentTimingType) return;
+
+            if (currentTimingType === 'monthly') {
+                monthlies = monthlies.filter(m => m.id !== currentTimingEditId);
+                renderMonthlies();
+            } else {
+                recurrings = recurrings.filter(r => r.id !== currentTimingEditId);
+                renderRecurrings();
+            }
+
+            closeTimingModal();
         }
 
         // TODO 追加
@@ -768,74 +911,6 @@
         function deleteTodo(id) {
             todos = todos.filter(item => item.id !== id);
             renderTodos();
-        }
-
-        // 毎月 追加
-        function addMonthly() {
-            const input = document.getElementById('monthly-input');
-            const timing = document.getElementById('monthly-timing');
-            if (!input.value) return;
-
-            monthlies.push({ id: Date.now(), text: input.value, timing: timing.value });
-            input.value = '';
-            timing.value = '';
-            renderMonthlies();
-        }
-
-        function renderMonthlies() {
-            const list = document.getElementById('monthly-list');
-            list.innerHTML = '';
-            monthlies.forEach(item => {
-                const li = document.createElement('li');
-                li.className = 'item-card';
-                li.innerHTML = `
-                    <div>
-                        <div>${escapeHtml(item.text)}</div>
-                        <small style="color:#888;">${escapeHtml(item.timing)}</small>
-                    </div>
-                    <button class="btn-danger" onclick="deleteMonthly(${item.id})">削除</button>
-                `;
-                list.appendChild(li);
-            });
-        }
-
-        function deleteMonthly(id) {
-            monthlies = monthlies.filter(item => item.id !== id);
-            renderMonthlies();
-        }
-
-        // 定期 追加
-        function addRecurring() {
-            const input = document.getElementById('recurring-input');
-            const timing = document.getElementById('recurring-timing');
-            if (!input.value) return;
-
-            recurrings.push({ id: Date.now(), text: input.value, timing: timing.value });
-            input.value = '';
-            timing.value = '';
-            renderRecurrings();
-        }
-
-        function renderRecurrings() {
-            const list = document.getElementById('recurring-list');
-            list.innerHTML = '';
-            recurrings.forEach(item => {
-                const li = document.createElement('li');
-                li.className = 'item-card';
-                li.innerHTML = `
-                    <div>
-                        <div>${escapeHtml(item.text)}</div>
-                        <small style="color:#888;">${escapeHtml(item.timing)}</small>
-                    </div>
-                    <button class="btn-danger" onclick="deleteRecurring(${item.id})">削除</button>
-                `;
-                list.appendChild(li);
-            });
-        }
-
-        function deleteRecurring(id) {
-            recurrings = recurrings.filter(item => item.id !== id);
-            renderRecurrings();
         }
 
         function timeToMinutes(timeStr) {
