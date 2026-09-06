@@ -416,7 +416,6 @@
                 <button class="modal-tab-btn" onclick="switchModalTab('daily-select')">毎日</button>
             </div>
 
-            <!-- 予定追加フォーム -->
             <div id="modal-tab-add" class="modal-tab-content active">
                 <div class="form-group">
                     <label>内容</label>
@@ -443,7 +442,6 @@
                 </div>
             </div>
 
-            <!-- 毎日タスク選択リスト -->
             <div id="modal-tab-daily-select" class="modal-tab-content">
                 <div id="modal-daily-list" style="max-height: 250px; overflow-y: auto;"></div>
                 <div class="modal-actions">
@@ -526,7 +524,7 @@
         let currentEditId = null;
         let currentDailyEditId = null;
         
-        let currentTimingType = null; // 'monthly' or 'recurring'
+        let currentTimingType = null;
         let currentTimingEditId = null;
 
         function populateTimeSelects() {
@@ -742,9 +740,9 @@
             renderDailies();
         }
 
-        // --- 毎月・定期 共通処理 ---
         function renderMonthlies() {
             const list = document.getElementById('monthly-list');
+            if (!list) return;
             list.innerHTML = '';
             monthlies.forEach(item => {
                 const li = document.createElement('li');
@@ -764,6 +762,7 @@
 
         function renderRecurrings() {
             const list = document.getElementById('recurring-list');
+            if (!list) return;
             list.innerHTML = '';
             recurrings.forEach(item => {
                 const li = document.createElement('li');
@@ -837,32 +836,49 @@
 
             if (!title) return;
 
-            const list = currentTimingType === 'monthly' ? monthlies : recurrings;
+            const targetType = currentTimingType;
 
-            if (currentTimingEditId) {
-                const item = list.find(t => t.id === currentTimingEditId);
-                if (item) {
-                    item.text = title;
-                    item.start = start;
-                    item.end = end;
-                    item.timing = timing;
+            if (targetType === 'monthly') {
+                if (currentTimingEditId) {
+                    const item = monthlies.find(t => t.id === currentTimingEditId);
+                    if (item) {
+                        item.text = title;
+                        item.start = start;
+                        item.end = end;
+                        item.timing = timing;
+                    }
+                } else {
+                    monthlies.push({
+                        id: Date.now(),
+                        text: title,
+                        start: start,
+                        end: end,
+                        timing: timing
+                    });
                 }
-            } else {
-                list.push({
-                    id: Date.now(),
-                    text: title,
-                    start: start,
-                    end: end,
-                    timing: timing
-                });
+                renderMonthlies();
+            } else if (targetType === 'recurring') {
+                if (currentTimingEditId) {
+                    const item = recurrings.find(t => t.id === currentTimingEditId);
+                    if (item) {
+                        item.text = title;
+                        item.start = start;
+                        item.end = end;
+                        item.timing = timing;
+                    }
+                } else {
+                    recurrings.push({
+                        id: Date.now(),
+                        text: title,
+                        start: start,
+                        end: end,
+                        timing: timing
+                    });
+                }
+                renderRecurrings();
             }
 
             closeTimingModal();
-            if (currentTimingType === 'monthly') {
-                renderMonthlies();
-            } else {
-                renderRecurrings();
-            }
         }
 
         function deleteTimingFromModal() {
@@ -879,7 +895,6 @@
             closeTimingModal();
         }
 
-        // TODO 追加
         function addTodo() {
             const input = document.getElementById('todo-input');
             const date = document.getElementById('todo-date');
@@ -1157,7 +1172,12 @@
             });
         }
 
+        // 初期ロード呼び出し
         populateTimeSelects();
+        renderTodos();
+        renderDailies();
+        renderMonthlies();
+        renderRecurrings();
         renderSchedule();
         setTimeout(scrollToCurrentTimeMinusOneHour, 100);
     </script>
