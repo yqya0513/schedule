@@ -5,90 +5,304 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>スケジュール管理</title>
     <style>
-        /* 基本スタイル設定 */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            padding: 15px;
+            background-color: #f5f5f7;
+        }
+
+        /* タブナビゲーション */
+        .tab-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 5px;
+        }
+        .tab-button {
+            padding: 8px 16px;
+            border: none;
+            background: none;
+            font-size: 15px;
+            font-weight: bold;
+            color: #666;
+            cursor: pointer;
+            border-radius: 6px;
+        }
+        .tab-button.active {
+            background-color: #007aff;
+            color: white;
+        }
+
+        /* アクションエリア */
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .btn-add {
+            background-color: #34c759;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* スケジュールグリッド */
         #schedule-grid {
             position: relative;
             height: 1440px; /* 24時間 × 60px */
-            border: 1px solid #ccc;
-            margin-top: 20px;
-            background-color: #fafafa;
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
             overflow: hidden;
         }
-
         .time-slot-line {
             position: absolute;
             left: 0;
             right: 0;
             height: 1px;
-            border-top: 1px dashed #ddd;
-            font-size: 12px;
-            color: #888;
+            border-top: 1px dashed #eee;
+            font-size: 11px;
+            color: #aaa;
             padding-left: 5px;
             pointer-events: none;
         }
-
         .current-time-line {
             position: absolute;
             left: 0;
             right: 0;
             height: 2px;
-            background-color: red;
+            background-color: #ff3b30;
             z-index: 10;
             pointer-events: none;
         }
-
         .schedule-item {
             position: absolute;
-            background-color: #4285f4;
+            background-color: #007aff;
             color: white;
             border-radius: 4px;
-            padding: 2px 5px;
+            padding: 3px 6px;
             font-size: 12px;
             box-sizing: border-box;
             cursor: pointer;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-            transition: width 0.2s, left 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+            z-index: 2;
+        }
+        .schedule-item.type-monthly {
+            background-color: #5856d6; /* 毎月タブ用カラー */
+        }
+        .schedule-item.type-daily {
+            background-color: #34c759; /* 毎日（定期）用カラー */
         }
 
-        .schedule-item:hover {
-            opacity: 0.9;
-            z-index: 5;
+        /* モーダル */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+        }
+        .form-group {
+            margin-bottom: 12px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 15px;
         }
     </style>
 </head>
 <body>
 
-    <h2>タイムスケジュール表</h2>
+    <!-- タブ切り替え -->
+    <div class="tab-container">
+        <button class="tab-button active" onclick="switchTab('daily')">毎日（定期）</button>
+        <button class="tab-button" onclick="switchTab('monthly')">毎月</button>
+        <button class="tab-button" onclick="switchTab('all')">全体表示</button>
+    </div>
+
+    <!-- アクションバー -->
+    <div class="action-bar">
+        <h3 id="current-tab-title">毎日（定期）のスケジュール</h3>
+        <button class="btn-add" onclick="openAddModal()">+ 新規追加</button>
+    </div>
+
+    <!-- スケジュール表本体 -->
     <div id="schedule-grid"></div>
 
+    <!-- 予定追加・編集モーダル -->
+    <div id="schedule-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="modal-title">予定の追加</h3>
+            <form id="schedule-form" onsubmit="saveSchedule(event)">
+                <input type="hidden" id="edit-id">
+                
+                <div class="form-group">
+                    <label>タイトル</label>
+                    <input type="text" id="input-title" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>繰り返し種別</label>
+                    <select id="input-type" onchange="toggleTypeFields()">
+                        <option value="daily">毎日（定期）</option>
+                        <option value="monthly">毎月</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="day-of-month-group" style="display: none;">
+                    <label>日付（毎月何日か）</label>
+                    <input type="number" id="input-day" min="1" max="31" value="1">
+                </div>
+
+                <div class="form-group">
+                    <label>開始時間</label>
+                    <input type="time" id="input-start" required>
+                </div>
+
+                <div class="form-group">
+                    <label>終了時間</label>
+                    <input type="time" id="input-end" required>
+                </div>
+
+                <div class="modal-buttons">
+                    <button type="button" onclick="closeModal()">キャンセル</button>
+                    <button type="submit" style="background:#007aff; color:white; border:none; padding:8px 16px; border-radius:6px;">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
-        // サンプルデータ（実際のプロジェクトのデータ構造に合わせてご利用ください）
-        let schedules = [
-            { id: 1, title: '毎日：朝の確認', start: '09:00', end: '10:00' },
-            { id: 2, title: '毎月：定例会議', start: '09:30', end: '11:00' },
-            { id: 3, title: '個別タスク', start: '10:15', end: '11:30' }
+        // 現在選択中のタブ ('daily', 'monthly', 'all')
+        let currentTab = 'daily';
+
+        // 登録されているスケジュールデータ（LocalStorageから読み込み）
+        let schedules = JSON.parse(localStorage.getItem('schedules')) || [
+            { id: '1', title: '朝のルーティン', type: 'daily', start: '08:00', end: '09:00' },
+            { id: '2', title: '毎月報告書作成', type: 'monthly', day: 15, start: '10:00', end: '11:30' }
         ];
 
-        // 時間表記（"09:30"など）を0時からの「分」に変換するヘルパー関数
+        // サービスワーカーの登録（sw.jsが存在する場合）
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(err => console.log('SW Fail:', err));
+        }
+
+        // タブ切替処理
+        function switchTab(type) {
+            currentTab = type;
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            
+            if (type === 'daily') {
+                event.target.classList.add('active');
+                document.getElementById('current-tab-title').innerText = '毎日（定期）のスケジュール';
+            } else if (type === 'monthly') {
+                event.target.classList.add('active');
+                document.getElementById('current-tab-title').innerText = '毎月のスケジュール';
+            } else {
+                event.target.classList.add('active');
+                document.getElementById('current-tab-title').innerText = 'すべてのスケジュール';
+            }
+            renderSchedule();
+        }
+
+        // モーダルの種別選択に応じたフィールド制御
+        function toggleTypeFields() {
+            const type = document.getElementById('input-type').value;
+            const dayGroup = document.getElementById('day-of-month-group');
+            dayGroup.style.display = (type === 'monthly') ? 'block' : 'none';
+        }
+
+        // モーダルを開く
+        function openAddModal() {
+            document.getElementById('edit-id').value = '';
+            document.getElementById('input-title').value = '';
+            document.getElementById('input-type').value = currentTab === 'monthly' ? 'monthly' : 'daily';
+            document.getElementById('input-start').value = '09:00';
+            document.getElementById('input-end').value = '10:00';
+            toggleTypeFields();
+            document.getElementById('schedule-modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('schedule-modal').classList.remove('active');
+        }
+
+        // データの保存
+        function saveSchedule(e) {
+            e.preventDefault();
+            const id = document.getElementById('edit-id').value || Date.now().toString();
+            const title = document.getElementById('input-title').value;
+            const type = document.getElementById('input-type').value;
+            const start = document.getElementById('input-start').value;
+            const end = document.getElementById('input-end').value;
+            const day = type === 'monthly' ? parseInt(document.getElementById('input-day').value, 10) : null;
+
+            const newSchedule = { id, title, type, start, end, day };
+
+            const index = schedules.findIndex(s => s.id === id);
+            if (index > -1) {
+                schedules[index] = newSchedule;
+            } else {
+                schedules.push(newSchedule);
+            }
+
+            localStorage.setItem('schedules', JSON.stringify(schedules));
+            closeModal();
+            renderSchedule();
+        }
+
+        // 時間表記 ("HH:MM") を分単位に変換
         function timeToMinutes(timeStr) {
-            const [hours, minutes] = timeStr.split(':').map(Number);
-            return hours * 60 + minutes;
+            if (!timeStr) return 0;
+            const [h, m] = timeStr.split(':').map(Number);
+            return h * 60 + m;
         }
 
-        // 編集モーダルを開く関数（仮設置）
-        function openEditModal(id) {
-            console.log('編集対象ID:', id);
-        }
-
-        // スケジュール描画メイン関数
+        // スケジュールの描画メイン関数
         function renderSchedule() {
             const grid = document.getElementById('schedule-grid');
             grid.innerHTML = '';
 
-            // 1. 時間軸のガイド線描画（24時間分）
+            // 1. 時間軸ガイド線の描画
             for (let i = 0; i < 24; i++) {
                 const line = document.createElement('div');
                 line.className = 'time-slot-line';
@@ -97,7 +311,7 @@
                 grid.appendChild(line);
             }
 
-            // 2. 現在時刻線の描画
+            // 2. 現在時刻線
             const now = new Date();
             const currentMin = now.getHours() * 60 + now.getMinutes();
             const timeLine = document.createElement('div');
@@ -105,14 +319,22 @@
             timeLine.style.top = `${currentMin}px`;
             grid.appendChild(timeLine);
 
-            // 3. 全ての予定を分単位に変換して開始時間順にソート
-            const items = schedules.map(s => ({
+            // 3. 表示対象データの抽出（タブごとのフィルタリング修正箇所）
+            let targetSchedules = schedules;
+            if (currentTab === 'daily') {
+                targetSchedules = schedules.filter(s => s.type === 'daily');
+            } else if (currentTab === 'monthly') {
+                targetSchedules = schedules.filter(s => s.type === 'monthly');
+            }
+
+            // 分単位に変換してソート
+            const items = targetSchedules.map(s => ({
                 ...s,
                 startMin: timeToMinutes(s.start),
                 endMin: timeToMinutes(s.end)
             })).sort((a, b) => a.startMin - b.startMin || (b.endMin - b.startMin) - (a.endMin - a.startMin));
 
-            // 4. 重なり判定（同じ時間帯に被っている予定をグループ化）
+            // 4. 重なり判定とグループ化（クラスタリング）
             const clusters = [];
             let currentCluster = [];
             let clusterEnd = -1;
@@ -131,8 +353,8 @@
                 clusters.push(currentCluster);
             }
 
-            // 5. グループごとに列（カラム）を割り当てて横並びに配置計算
-            const gridWidth = grid.clientWidth - 45;
+            // 5. 重なり調整と画面描画
+            const gridWidth = grid.clientWidth - 40;
 
             clusters.forEach(cluster => {
                 const columns = [];
@@ -158,30 +380,27 @@
 
                 cluster.forEach(item => {
                     const el = document.createElement('div');
-                    el.className = 'schedule-item';
+                    el.className = `schedule-item type-${item.type}`;
                     
                     const top = item.startMin;
-                    const height = Math.max(item.endMin - item.startMin, 18);
+                    const height = Math.max(item.endMin - item.startMin, 20);
                     const itemWidth = (gridWidth / maxCols) - 2;
-                    const left = 45 + (itemWidth * item.colIndex) + (item.colIndex * 2);
+                    const left = 40 + (itemWidth * item.colIndex) + (item.colIndex * 2);
 
                     el.style.top = `${top}px`;
                     el.style.height = `${height}px`;
                     el.style.width = `${itemWidth}px`;
                     el.style.left = `${left}px`;
 
-                    el.innerText = `${item.title} (${item.start}~${item.end})`;
-                    el.onclick = (e) => {
-                        e.stopPropagation();
-                        openEditModal(item.id);
-                    };
+                    const dayText = item.type === 'monthly' && item.day ? `[${item.day}日] ` : '';
+                    el.innerText = `${dayText}${item.title} (${item.start}~${item.end})`;
 
                     grid.appendChild(el);
                 });
             });
         }
 
-        // 画面読み込み時に実行
+        // 初期描画
         window.onload = () => {
             renderSchedule();
         };
