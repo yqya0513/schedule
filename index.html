@@ -963,54 +963,74 @@
                 ...s,
                 startMin: timeToMinutes(s.start),
                 endMin: timeToMinutes(s.end)
-            })).sort((a, b) => a.startMin - b.startMin);
+            })).sort((a, b) => a.startMin - b.startMin || (b.endMin - b.startMin) - (a.endMin - a.startMin));
 
-            const columns = [];
+            // 1. 時間領域が重なる予定をグループ（クラスタ）に分割
+            const clusters = [];
+            let currentCluster = [];
+            let clusterEnd = -1;
+
             items.forEach(item => {
-                let placed = false;
-                for (let i = 0; i < columns.length; i++) {
-                    const lastItemInCol = columns[i][columns[i].length - 1];
-                    if (lastItemInCol.endMin <= item.startMin) {
-                        columns[i].push(item);
-                        item.colIndex = i;
-                        placed = true;
-                        break;
-                    }
-                }
-                if (!placed) {
-                    item.colIndex = columns.length;
-                    columns.push([item]);
+                if (currentCluster.length === 0 || item.startMin < clusterEnd) {
+                    currentCluster.push(item);
+                    clusterEnd = Math.max(clusterEnd, item.endMin);
+                } else {
+                    clusters.push(currentCluster);
+                    currentCluster = [item];
+                    clusterEnd = item.endMin;
                 }
             });
+            if (currentCluster.length > 0) {
+                clusters.push(currentCluster);
+            }
 
             const gridWidth = grid.clientWidth - 45;
 
-            items.forEach(item => {
-                const overlapping = items.filter(other => 
-                    Math.max(item.startMin, other.startMin) < Math.min(item.endMin, other.endMin)
-                );
-                const maxCols = Math.max(...overlapping.map(o => o.colIndex)) + 1;
+            // 2. クラスタごとにカラム割り当てと描画を行う
+            clusters.forEach(cluster => {
+                const columns = [];
 
-                const el = document.createElement('div');
-                el.className = 'schedule-item';
-                
-                const top = item.startMin;
-                const height = Math.max(item.endMin - item.startMin, 15);
-                const itemWidth = gridWidth / maxCols;
-                const left = 45 + (itemWidth * item.colIndex);
+                cluster.forEach(item => {
+                    let placed = false;
+                    for (let i = 0; i < columns.length; i++) {
+                        const lastItemInCol = columns[i][columns[i].length - 1];
+                        if (lastItemInCol.endMin <= item.startMin) {
+                            columns[i].push(item);
+                            item.colIndex = i;
+                            placed = true;
+                            break;
+                        }
+                    }
+                    if (!placed) {
+                        item.colIndex = columns.length;
+                        columns.push([item]);
+                    }
+                });
 
-                el.style.top = `${top}px`;
-                el.style.height = `${height}px`;
-                el.style.width = `${itemWidth}px`;
-                el.style.left = `${left}px`;
+                const maxCols = columns.length;
 
-                el.innerText = `${item.title} (${item.start}~${item.end})`;
-                el.onclick = (e) => {
-                    e.stopPropagation();
-                    openEditModal(item.id);
-                };
+                cluster.forEach(item => {
+                    const el = document.createElement('div');
+                    el.className = 'schedule-item';
+                    
+                    const top = item.startMin;
+                    const height = Math.max(item.endMin - item.startMin, 18);
+                    const itemWidth = Math.max((gridWidth / maxCols) - 2, 10);
+                    const left = 45 + ((gridWidth / maxCols) * item.colIndex) + 1;
 
-                grid.appendChild(el);
+                    el.style.top = `${top}px`;
+                    el.style.height = `${height}px`;
+                    el.style.width = `${itemWidth}px`;
+                    el.style.left = `${left}px`;
+
+                    el.innerText = `${item.title} (${item.start}~${item.end})`;
+                    el.onclick = (e) => {
+                        e.stopPropagation();
+                        openEditModal(item.id);
+                    };
+
+                    grid.appendChild(el);
+                });
             });
         }
 
