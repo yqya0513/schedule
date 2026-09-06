@@ -680,7 +680,8 @@
                 end: end
             });
 
-            switchTab('schedule');
+            // 予定タブへの自動移動(switchTab('schedule'))を修正して削除しました
+            alert(`「${title}」を本日の予定に追加しました。`);
         }
 
         function openDailyCreateModal() {
