@@ -669,7 +669,6 @@
 
         function directInputSchedule(title, start, end) {
             if (!start || !end || start === 'null' || end === 'null' || start === 'undefined' || end === 'undefined') {
-                alert('開始時間と終了時間を設定してください。');
                 return;
             }
 
@@ -679,9 +678,6 @@
                 start: start,
                 end: end
             });
-
-            // 予定タブへの自動移動(switchTab('schedule'))を修正して削除しました
-            alert(`「${title}」を本日の予定に追加しました。`);
         }
 
         function openDailyCreateModal() {
@@ -1187,10 +1183,7 @@
                     renderMonthlies();
                     renderRecurrings();
                     renderSchedule();
-
-                    alert('データをインポートしました。');
                 } catch (err) {
-                    alert('ファイルの読み込みに失敗しました。正しいJSONファイルを選択してください。');
                 }
             };
             reader.readAsText(file);
