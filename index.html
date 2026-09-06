@@ -104,11 +104,10 @@
         input[type="text"],
         input[type="number"],
         input[type="date"],
-        input[type="time"],
         select {
             width: 100% !important;
             max-width: 100% !important;
-            height: 42px !important; /* 縦の長さを内容の入力枠と同一に固定 */
+            height: 42px !important;
             box-sizing: border-box !important;
             padding: 10px;
             border: 1px solid var(--border-color);
@@ -119,6 +118,22 @@
             -webkit-appearance: none;
             -moz-appearance: none;
             appearance: none;
+        }
+
+        /* 時間・分を横並びにするレイアウト */
+        .time-select-group {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .time-select-group select {
+            flex: 1;
+        }
+
+        .time-select-group span {
+            font-size: 12px;
+            color: #666;
         }
 
         .form-row {
@@ -183,15 +198,22 @@
         }
 
         /* スケジュール（予定タブ）表示 */
+        .time-grid-container {
+            max-height: calc(100vh - 320px);
+            overflow-y: auto;
+            margin-top: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            position: relative;
+        }
+
         .time-grid {
             position: relative;
             background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            margin-top: 16px;
             height: 1440px; /* 24時間 * 60px */
-            padding-left: 45px; /* 時間表記との被りを防ぐための余白 */
+            padding-left: 45px;
             box-sizing: border-box;
+            cursor: pointer;
         }
 
         .time-slot-line {
@@ -203,6 +225,27 @@
             color: #999;
             padding-left: 4px;
             pointer-events: none;
+        }
+
+        /* 現在時刻ライン */
+        .current-time-line {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            border-top: 2px solid #e74c3c;
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        .current-time-line::before {
+            content: '';
+            position: absolute;
+            left: 40px;
+            top: -4px;
+            width: 6px;
+            height: 6px;
+            background-color: #e74c3c;
+            border-radius: 50%;
         }
 
         .schedule-item {
@@ -282,7 +325,7 @@
     </header>
 
     <div class="container">
-        <!-- 予定 タブ（一番左へ移動） -->
+        <!-- 予定 タブ -->
         <div id="tab-schedule" class="tab-content active">
             <div class="section-header">
                 <h2 class="section-title">予定</h2>
@@ -294,17 +337,25 @@
             <div class="form-row">
                 <div class="form-group">
                     <label>開始時間</label>
-                    <select id="schedule-start"></select>
+                    <div class="time-select-group">
+                        <select id="schedule-start-hour"></select><span>時</span>
+                        <select id="schedule-start-min"></select><span>分</span>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>終了時間</label>
-                    <select id="schedule-end"></select>
+                    <div class="time-select-group">
+                        <select id="schedule-end-hour"></select><span>時</span>
+                        <select id="schedule-end-min"></select><span>分</span>
+                    </div>
                 </div>
             </div>
             <button class="btn-primary" onclick="addSchedule()">予定を追加</button>
             <button class="btn-danger" style="width: 100%; margin-top: 8px;" onclick="clearTodaySchedule()">本日の予定を一括削除</button>
 
-            <div id="schedule-grid" class="time-grid"></div>
+            <div class="time-grid-container" id="grid-container">
+                <div id="schedule-grid" class="time-grid" onclick="handleGridClick(event)"></div>
+            </div>
         </div>
 
         <!-- TODO タブ -->
@@ -394,22 +445,28 @@
     <!-- 予定編集用モーダル -->
     <div id="edit-modal" class="modal">
         <div class="modal-content">
-            <h3>予定の編集</h3>
+            <h3 id="modal-title-text">予定の編集</h3>
             <div class="form-group" style="margin-top: 12px;">
                 <label>内容</label>
                 <input type="text" id="edit-title">
             </div>
             <div class="form-group">
                 <label>開始時間</label>
-                <select id="edit-start"></select>
+                <div class="time-select-group">
+                    <select id="edit-start-hour"></select><span>時</span>
+                    <select id="edit-start-min"></select><span>分</span>
+                </div>
             </div>
             <div class="form-group">
                 <label>終了時間</label>
-                <select id="edit-end"></select>
+                <div class="time-select-group">
+                    <select id="edit-end-hour"></select><span>時</span>
+                    <select id="edit-end-min"></select><span>分</span>
+                </div>
             </div>
             <div class="modal-actions">
                 <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
-                <button class="btn-danger" onclick="deleteSchedule()">削除</button>
+                <button class="btn-danger" id="modal-delete-btn" onclick="deleteSchedule()">削除</button>
                 <button class="btn-primary" style="margin-top:0;" onclick="saveScheduleEdit()">保存</button>
             </div>
         </div>
@@ -424,23 +481,49 @@
         let schedules = [];
         let currentEditId = null;
 
-        // 5分単位の時間選択肢を生成する初期化関数
+        // 時間・分 ドロップダウンの生成（時間は0〜23、分は5分単位）
         function populateTimeSelects() {
-            const timeSelectIds = ['schedule-start', 'schedule-end', 'edit-start', 'edit-end'];
-            const options = ['<option value="">選択してください</option>'];
+            const hourIds = ['schedule-start-hour', 'schedule-end-hour', 'edit-start-hour', 'edit-end-hour'];
+            const minIds = ['schedule-start-min', 'schedule-end-min', 'edit-start-min', 'edit-end-min'];
 
+            let hourHtml = '<option value="">--</option>';
             for (let h = 0; h < 24; h++) {
-                for (let m = 0; m < 60; m += 5) {
-                    const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-                    options.push(`<option value="${timeStr}">${timeStr}</option>`);
-                }
+                const val = String(h).padStart(2, '0');
+                hourHtml += `<option value="${val}">${val}</option>`;
             }
-
-            const html = options.join('');
-            timeSelectIds.forEach(id => {
+            hourIds.forEach(id => {
                 const el = document.getElementById(id);
-                if (el) el.innerHTML = html;
+                if (el) el.innerHTML = hourHtml;
             });
+
+            let minHtml = '<option value="">--</option>';
+            for (let m = 0; m < 60; m += 5) {
+                const val = String(m).padStart(2, '0');
+                minHtml += `<option value="${val}">${val}</option>`;
+            }
+            minIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = minHtml;
+            });
+        }
+
+        // 時間・分の設定ヘルパー
+        function setSelectValue(prefix, timeStr) {
+            if (!timeStr) {
+                document.getElementById(`${prefix}-hour`).value = '';
+                document.getElementById(`${prefix}-min`).value = '';
+                return;
+            }
+            const [h, m] = timeStr.split(':');
+            document.getElementById(`${prefix}-hour`).value = h;
+            document.getElementById(`${prefix}-min`).value = m;
+        }
+
+        function getSelectValue(prefix) {
+            const h = document.getElementById(`${prefix}-hour`).value;
+            const m = document.getElementById(`${prefix}-min`).value;
+            if (h === '' || m === '') return null;
+            return `${h}:${m}`;
         }
 
         // タブ切り替え
@@ -450,6 +533,10 @@
             
             document.getElementById(`tab-${tabName}`).classList.add('active');
             event.currentTarget.classList.add('active');
+
+            if (tabName === 'schedule') {
+                scrollToCurrentTimeMinusOneHour();
+            }
         }
 
         // TODO 追加
@@ -591,8 +678,8 @@
         // 予定 追加
         function addSchedule() {
             const title = document.getElementById('schedule-title').value;
-            const start = document.getElementById('schedule-start').value;
-            const end = document.getElementById('schedule-end').value;
+            const start = getSelectValue('schedule-start');
+            const end = getSelectValue('schedule-end');
 
             if (!title || !start || !end) return;
 
@@ -604,8 +691,8 @@
             });
 
             document.getElementById('schedule-title').value = '';
-            document.getElementById('schedule-start').value = '';
-            document.getElementById('schedule-end').value = '';
+            setSelectValue('schedule-start', '');
+            setSelectValue('schedule-end', '');
 
             renderSchedule();
         }
@@ -615,10 +702,18 @@
             return h * 60 + m;
         }
 
+        function minutesToTime(mins) {
+            let h = Math.floor(mins / 60);
+            let m = mins % 60;
+            if (h >= 24) h = 23;
+            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        }
+
         function renderSchedule() {
             const grid = document.getElementById('schedule-grid');
             grid.innerHTML = '';
 
+            // 時間軸の線
             for (let i = 0; i < 24; i++) {
                 const line = document.createElement('div');
                 line.className = 'time-slot-line';
@@ -626,6 +721,14 @@
                 line.innerText = `${String(i).padStart(2, '0')}:00`;
                 grid.appendChild(line);
             }
+
+            // 現在時刻の赤線
+            const now = new Date();
+            const currentMin = now.getHours() * 60 + now.getMinutes();
+            const timeLine = document.createElement('div');
+            timeLine.className = 'current-time-line';
+            timeLine.style.top = `${currentMin}px`;
+            grid.appendChild(timeLine);
 
             const items = schedules.map(s => ({
                 ...s,
@@ -651,7 +754,6 @@
                 }
             });
 
-            // 左側の時間表記幅（45px分）を除いた可動領域を基準に配置
             const gridWidth = grid.clientWidth - 45;
 
             items.forEach(item => {
@@ -674,10 +776,47 @@
                 el.style.left = `${left}px`;
 
                 el.innerText = `${item.title} (${item.start}~${item.end})`;
-                el.onclick = () => openEditModal(item.id);
+                el.onclick = (e) => {
+                    e.stopPropagation(); // グリッドのクリックイベント発火を防止
+                    openEditModal(item.id);
+                };
 
                 grid.appendChild(el);
             });
+        }
+
+        // 現在時刻の1時間前にスクロール
+        function scrollToCurrentTimeMinusOneHour() {
+            const container = document.getElementById('grid-container');
+            const now = new Date();
+            const currentMin = now.getHours() * 60 + now.getMinutes();
+            const targetMin = Math.max(0, currentMin - 60); // 1時間（60分）前
+            container.scrollTop = targetMin;
+        }
+
+        // タイムグリッドタップによる予定追加
+        function handleGridClick(event) {
+            const rect = event.currentTarget.getBoundingClientRect();
+            const clickY = event.clientY - rect.top; // タップしたY座標（px＝分）
+            
+            // 5分単位に丸める
+            let startMins = Math.floor(clickY / 5) * 5;
+            if (startMins >= 1440) startMins = 1435;
+            
+            let endMins = startMins + 30; // 初期表示として30分後に設定
+            if (endMins > 1440) endMins = 1440;
+
+            const startStr = minutesToTime(startMins);
+            const endStr = minutesToTime(endMins);
+
+            currentEditId = null;
+            document.getElementById('modal-title-text').innerText = '予定の追加';
+            document.getElementById('edit-title').value = '';
+            setSelectValue('edit-start', startStr);
+            setSelectValue('edit-end', endStr);
+            document.getElementById('modal-delete-btn').style.display = 'none';
+
+            document.getElementById('edit-modal').classList.add('open');
         }
 
         function clearTodaySchedule() {
@@ -685,15 +824,17 @@
             renderSchedule();
         }
 
-        // 編集モーダル制御
+        // モーダル制御
         function openEditModal(id) {
             const item = schedules.find(s => s.id === id);
             if (!item) return;
 
             currentEditId = id;
+            document.getElementById('modal-title-text').innerText = '予定の編集';
             document.getElementById('edit-title').value = item.title;
-            document.getElementById('edit-start').value = item.start;
-            document.getElementById('edit-end').value = item.end;
+            setSelectValue('edit-start', item.start);
+            setSelectValue('edit-end', item.end);
+            document.getElementById('modal-delete-btn').style.display = 'block';
 
             document.getElementById('edit-modal').classList.add('open');
         }
@@ -704,19 +845,28 @@
         }
 
         function saveScheduleEdit() {
-            if (!currentEditId) return;
-
             const title = document.getElementById('edit-title').value;
-            const start = document.getElementById('edit-start').value;
-            const end = document.getElementById('edit-end').value;
+            const start = getSelectValue('edit-start');
+            const end = getSelectValue('edit-end');
 
             if (!title || !start || !end) return;
 
-            const item = schedules.find(s => s.id === currentEditId);
-            if (item) {
-                item.title = title;
-                item.start = start;
-                item.end = end;
+            if (currentEditId) {
+                // 編集時
+                const item = schedules.find(s => s.id === currentEditId);
+                if (item) {
+                    item.title = title;
+                    item.start = start;
+                    item.end = end;
+                }
+            } else {
+                // タップからの新規追加時
+                schedules.push({
+                    id: Date.now(),
+                    title: title,
+                    start: start,
+                    end: end
+                });
             }
 
             closeModal();
@@ -796,6 +946,7 @@
         // 初期化
         populateTimeSelects();
         renderSchedule();
+        setTimeout(scrollToCurrentTimeMinusOneHour, 100);
     </script>
 </body>
 </html>
