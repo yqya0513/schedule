@@ -2,948 +2,93 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>タスク＆スケジュール管理</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スケジュール管理</title>
     <style>
-        :root {
-            --primary-color: #4a90e2;
-            --bg-color: #f5f7fa;
-            --card-bg: #ffffff;
-            --text-color: #333333;
-            --border-color: #e1e8ed;
-            --danger-color: #e74c3c;
-            --success-color: #2ecc71;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            touch-action: manipulation;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            padding-bottom: 60px;
-        }
-
-        header {
-            background-color: var(--card-bg);
-            border-bottom: 1px solid var(--border-color);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .tab-nav {
-            display: flex;
-            overflow-x: auto;
-            white-space: nowrap;
-            background: #fff;
-        }
-
-        .tab-btn {
-            flex: 1;
-            padding: 12px 16px;
-            border: none;
-            background: none;
-            font-size: 14px;
-            font-weight: bold;
-            color: #666;
-            cursor: pointer;
-            border-bottom: 3px solid transparent;
-            text-align: center;
-        }
-
-        .tab-btn.active {
-            color: var(--primary-color);
-            border-bottom-color: var(--primary-color);
-        }
-
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 16px;
-            width: 100%;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .form-group {
-            margin-bottom: 12px;
-            width: 100%;
-        }
-
-        label {
-            display: block;
-            font-size: 12px;
-            font-weight: bold;
-            margin-bottom: 4px;
-            color: #666;
-        }
-
-        input[type="text"],
-        input[type="number"],
-        input[type="date"],
-        select {
-            width: 100% !important;
-            max-width: 100% !important;
-            height: 42px !important;
-            box-sizing: border-box !important;
-            padding: 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            font-size: 16px !important;
-            background-color: #fff;
-            display: block;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-        }
-
-        select.wheel-scrollable {
-            cursor: ns-resize;
-        }
-
-        .time-select-group {
-            display: flex;
-            gap: 4px;
-            align-items: center;
-        }
-
-        .time-select-group select {
-            flex: 1;
-        }
-
-        .time-select-group span {
-            font-size: 12px;
-            color: #666;
-        }
-
-        button.btn-primary {
-            width: 100%;
-            padding: 12px;
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 8px;
-        }
-
-        button.btn-secondary {
-            background-color: #6c757d;
-            color: white;
-            border: none;
-            padding: 10px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-        }
-
-        button.btn-danger {
-            background-color: var(--danger-color);
-            color: white;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-
-        button.btn-success {
-            background-color: var(--success-color);
-            color: white;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: bold;
-        }
-
-        .item-list {
-            list-style: none;
-            margin-top: 16px;
-        }
-
-        .item-card {
-            background: var(--card-bg);
-            padding: 12px;
-            border-radius: 6px;
-            border: 1px solid var(--border-color);
-            margin-bottom: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .time-grid-container {
-            max-height: calc(100vh - 170px);
-            overflow-y: auto;
-            margin-top: 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
+        /* 基本スタイル設定 */
+        #schedule-grid {
             position: relative;
-        }
-
-        .time-grid {
-            position: relative;
-            background: var(--card-bg);
-            height: 1440px;
-            padding-left: 45px;
-            box-sizing: border-box;
-            cursor: pointer;
+            height: 1440px; /* 24時間 × 60px */
+            border: 1px solid #ccc;
+            margin-top: 20px;
+            background-color: #fafafa;
+            overflow: hidden;
         }
 
         .time-slot-line {
             position: absolute;
             left: 0;
-            width: 100%;
-            border-top: 1px solid #f0f0f0;
-            font-size: 10px;
-            color: #999;
-            padding-left: 4px;
+            right: 0;
+            height: 1px;
+            border-top: 1px dashed #ddd;
+            font-size: 12px;
+            color: #888;
+            padding-left: 5px;
             pointer-events: none;
         }
 
         .current-time-line {
             position: absolute;
             left: 0;
-            width: 100%;
-            border-top: 2px solid #e74c3c;
-            z-index: 20;
+            right: 0;
+            height: 2px;
+            background-color: red;
+            z-index: 10;
             pointer-events: none;
-        }
-
-        .current-time-line::before {
-            content: '';
-            position: absolute;
-            left: 40px;
-            top: -4px;
-            width: 6px;
-            height: 6px;
-            background-color: #e74c3c;
-            border-radius: 50%;
         }
 
         .schedule-item {
             position: absolute;
-            background-color: rgba(74, 144, 226, 0.2);
-            border-left: 4px solid var(--primary-color);
-            padding: 4px 6px;
+            background-color: #4285f4;
+            color: white;
+            border-radius: 4px;
+            padding: 2px 5px;
             font-size: 12px;
-            border-radius: 2px;
+            box-sizing: border-box;
             cursor: pointer;
             overflow: hidden;
-            box-sizing: border-box;
-            z-index: 10;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            transition: width 0.2s, left 0.2s;
         }
 
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal.open {
-            display: flex;
-        }
-
-        .modal-content {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            width: 90%;
-            max-width: 400px;
-        }
-
-        .modal-tab-nav {
-            display: flex;
-            border-bottom: 2px solid var(--border-color);
-            margin-bottom: 16px;
-        }
-
-        .modal-tab-btn {
-            flex: 1;
-            padding: 8px;
-            background: none;
-            border: none;
-            font-size: 14px;
-            font-weight: bold;
-            color: #666;
-            cursor: pointer;
-            border-bottom: 2px solid transparent;
-            margin-bottom: -2px;
-        }
-
-        .modal-tab-btn.active {
-            color: var(--primary-color);
-            border-bottom-color: var(--primary-color);
-        }
-
-        .modal-tab-content {
-            display: none;
-        }
-
-        .modal-tab-content.active {
-            display: block;
-        }
-
-        .selectable-item {
-            padding: 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            margin-bottom: 8px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .selectable-item:hover {
-            background-color: var(--bg-color);
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 8px;
-            margin-top: 16px;
-        }
-
-        .modal-actions button {
-            flex: 1;
-            padding: 10px;
-            border-radius: 4px;
-            border: none;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .btn-cancel {
-            background-color: #ccc;
+        .schedule-item:hover {
+            opacity: 0.9;
+            z-index: 5;
         }
     </style>
 </head>
 <body>
 
-    <header>
-        <nav class="tab-nav">
-            <button class="tab-btn" onclick="switchTab('todo')">TODO</button>
-            <button class="tab-btn active" onclick="switchTab('schedule')">予定</button>
-            <button class="tab-btn" onclick="switchTab('daily')">毎日</button>
-            <button class="tab-btn" onclick="switchTab('monthly')">毎月</button>
-            <button class="tab-btn" onclick="switchTab('recurring')">定期</button>
-            <button class="tab-btn" onclick="switchTab('settings')">設定</button>
-        </nav>
-    </header>
-
-    <div class="container">
-        <!-- TODO タブ -->
-        <div id="tab-todo" class="tab-content">
-            <div class="form-group">
-                <label>内容</label>
-                <input type="text" id="todo-input">
-            </div>
-            <div class="form-group">
-                <label>期限</label>
-                <input type="date" id="todo-date">
-            </div>
-            <button class="btn-primary" onclick="addTodo()">追加</button>
-            <ul id="todo-list" class="item-list"></ul>
-        </div>
-
-        <!-- 予定 タブ -->
-        <div id="tab-schedule" class="tab-content active">
-            <button class="btn-danger" style="width: 100%;" onclick="clearTodaySchedule()">本日の予定を一括削除</button>
-            <div class="time-grid-container" id="grid-container">
-                <div id="schedule-grid" class="time-grid" onclick="handleGridClick(event)"></div>
-            </div>
-        </div>
-
-        <!-- 毎日 タブ -->
-        <div id="tab-daily" class="tab-content">
-            <button class="btn-primary" style="margin-top:0;" onclick="openDailyCreateModal()">+ 新規追加</button>
-            <ul id="daily-list" class="item-list"></ul>
-        </div>
-
-        <!-- 毎月 タブ -->
-        <div id="tab-monthly" class="tab-content">
-            <button class="btn-primary" style="margin-top:0;" onclick="openMonthlyCreateModal()">+ 新規追加</button>
-            <ul id="monthly-list" class="item-list"></ul>
-        </div>
-
-        <!-- 定期 タブ -->
-        <div id="tab-recurring" class="tab-content">
-            <button class="btn-primary" style="margin-top:0;" onclick="openRecurringCreateModal()">+ 新規追加</button>
-            <ul id="recurring-list" class="item-list"></ul>
-        </div>
-
-        <!-- 設定 タブ -->
-        <div id="tab-settings" class="tab-content">
-            <div style="margin-top: 8px;">
-                <h3 style="font-size: 16px; margin-bottom: 12px;">データ管理</h3>
-                <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                    <button class="btn-secondary" style="flex: 1;" onclick="exportData()">データのエクスポート</button>
-                    <button class="btn-secondary" style="flex: 1;" onclick="triggerImport()">データのインポート</button>
-                </div>
-                <input type="file" id="import-file" style="display: none;" onchange="importData(event)" accept=".json">
-            </div>
-        </div>
-    </div>
-
-    <!-- 予定追加・編集用モーダル -->
-    <div id="edit-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-tab-nav">
-                <button class="modal-tab-btn active" id="modal-tab-add-btn" onclick="switchModalTab('add')">予定の追加</button>
-                <button class="modal-tab-btn" onclick="switchModalTab('daily-select')">毎日</button>
-            </div>
-
-            <div id="modal-tab-add" class="modal-tab-content active">
-                <div class="form-group">
-                    <label>内容</label>
-                    <input type="text" id="edit-title">
-                </div>
-                <div class="form-group">
-                    <label>開始時間</label>
-                    <div class="time-select-group">
-                        <select id="edit-start-hour" class="wheel-scrollable"></select><span>時</span>
-                        <select id="edit-start-min" class="wheel-scrollable"></select><span>分</span>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>終了時間</label>
-                    <div class="time-select-group">
-                        <select id="edit-end-hour" class="wheel-scrollable"></select><span>時</span>
-                        <select id="edit-end-min" class="wheel-scrollable"></select><span>分</span>
-                    </div>
-                </div>
-                <div class="modal-actions">
-                    <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
-                    <button class="btn-danger" id="modal-delete-btn" onclick="deleteSchedule()">削除</button>
-                    <button class="btn-primary" style="margin-top:0;" onclick="saveScheduleEdit()">保存</button>
-                </div>
-            </div>
-
-            <div id="modal-tab-daily-select" class="modal-tab-content">
-                <div id="modal-daily-list" style="max-height: 250px; overflow-y: auto;"></div>
-                <div class="modal-actions">
-                    <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 毎日タスク追加・編集用モーダル -->
-    <div id="daily-edit-modal" class="modal">
-        <div class="modal-content">
-            <h3 id="daily-modal-title">「毎日」項目の編集</h3>
-            <div class="form-group" style="margin-top: 12px;">
-                <label>内容</label>
-                <input type="text" id="daily-edit-title">
-            </div>
-            <div class="form-group">
-                <label>開始時間</label>
-                <div class="time-select-group">
-                    <select id="daily-edit-start-hour" class="wheel-scrollable"></select><span>時</span>
-                    <select id="daily-edit-start-min" class="wheel-scrollable"></select><span>分</span>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>終了時間</label>
-                <div class="time-select-group">
-                    <select id="daily-edit-end-hour" class="wheel-scrollable"></select><span>時</span>
-                    <select id="daily-edit-end-min" class="wheel-scrollable"></select><span>分</span>
-                </div>
-            </div>
-            <div class="modal-actions">
-                <button class="btn-cancel" onclick="closeDailyEditModal()">キャンセル</button>
-                <button class="btn-danger" id="daily-modal-delete-btn" onclick="deleteDailyFromModal()">削除</button>
-                <button class="btn-primary" style="margin-top:0;" onclick="saveDailyEdit()">保存</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 毎月・定期 汎用追加・編集用モーダル -->
-    <div id="timing-task-modal" class="modal">
-        <div class="modal-content">
-            <h3 id="timing-modal-title">項目の編集</h3>
-            <div class="form-group" style="margin-top: 12px;">
-                <label>内容</label>
-                <input type="text" id="timing-edit-title">
-            </div>
-            <div class="form-group">
-                <label>開始時間</label>
-                <div class="time-select-group">
-                    <select id="timing-edit-start-hour" class="wheel-scrollable"></select><span>時</span>
-                    <select id="timing-edit-start-min" class="wheel-scrollable"></select><span>分</span>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>終了時間</label>
-                <div class="time-select-group">
-                    <select id="timing-edit-end-hour" class="wheel-scrollable"></select><span>時</span>
-                    <select id="timing-edit-end-min" class="wheel-scrollable"></select><span>分</span>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>日時・曜日</label>
-                <input type="text" id="timing-edit-value" placeholder="例: 1日, 毎週月曜日">
-            </div>
-            <div class="modal-actions">
-                <button class="btn-cancel" onclick="closeTimingModal()">キャンセル</button>
-                <button class="btn-danger" id="timing-modal-delete-btn" onclick="deleteTimingFromModal()">削除</button>
-                <button class="btn-primary" style="margin-top:0;" onclick="saveTimingEdit()">保存</button>
-            </div>
-        </div>
-    </div>
+    <h2>タイムスケジュール表</h2>
+    <div id="schedule-grid"></div>
 
     <script>
-        let todos = [];
-        let dailies = [];
-        let monthlies = [];
-        let recurrings = [];
-        let schedules = [];
-        let currentEditId = null;
-        let currentDailyEditId = null;
-        
-        let currentTimingType = null;
-        let currentTimingEditId = null;
+        // サンプルデータ（実際のプロジェクトのデータ構造に合わせてご利用ください）
+        let schedules = [
+            { id: 1, title: '毎日：朝の確認', start: '09:00', end: '10:00' },
+            { id: 2, title: '毎月：定例会議', start: '09:30', end: '11:00' },
+            { id: 3, title: '個別タスク', start: '10:15', end: '11:30' }
+        ];
 
-        function populateTimeSelects() {
-            const hourIds = ['edit-start-hour', 'edit-end-hour', 'daily-edit-start-hour', 'daily-edit-end-hour', 'timing-edit-start-hour', 'timing-edit-end-hour'];
-            const minIds = ['edit-start-min', 'edit-end-min', 'daily-edit-start-min', 'daily-edit-end-min', 'timing-edit-start-min', 'timing-edit-end-min'];
-
-            let hourHtml = '<option value="">--</option>';
-            for (let h = 0; h < 24; h++) {
-                const val = String(h).padStart(2, '0');
-                hourHtml += `<option value="${val}">${val}</option>`;
-            }
-            hourIds.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.innerHTML = hourHtml;
-            });
-
-            let minHtml = '<option value="">--</option>';
-            for (let m = 0; m < 60; m += 5) {
-                const val = String(m).padStart(2, '0');
-                minHtml += `<option value="${val}">${val}</option>`;
-            }
-            minIds.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.innerHTML = minHtml;
-            });
-
-            document.querySelectorAll('.wheel-scrollable').forEach(selectEl => {
-                selectEl.addEventListener('wheel', function(e) {
-                    e.preventDefault();
-                    if (this.options.length <= 1) return;
-
-                    let index = this.selectedIndex;
-                    if (e.deltaY > 0) {
-                        if (index < this.options.length - 1) this.selectedIndex = index + 1;
-                    } else {
-                        if (index > 0) this.selectedIndex = index - 1;
-                    }
-                }, { passive: false });
-            });
-        }
-
-        function setSelectValue(prefix, timeStr) {
-            if (!timeStr) {
-                document.getElementById(`${prefix}-hour`).value = '';
-                document.getElementById(`${prefix}-min`).value = '';
-                return;
-            }
-            const [h, m] = timeStr.split(':');
-            document.getElementById(`${prefix}-hour`).value = h;
-            document.getElementById(`${prefix}-min`).value = m;
-        }
-
-        function getSelectValue(prefix) {
-            const h = document.getElementById(`${prefix}-hour`).value;
-            const m = document.getElementById(`${prefix}-min`).value;
-            if (h === '' || m === '') return null;
-            return `${h}:${m}`;
-        }
-
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            
-            document.getElementById(`tab-${tabName}`).classList.add('active');
-            if (event && event.currentTarget) {
-                event.currentTarget.classList.add('active');
-            }
-
-            if (tabName === 'schedule') {
-                scrollToCurrentTimeMinusOneHour();
-            }
-        }
-
-        function switchModalTab(tabName) {
-            document.querySelectorAll('.modal-tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.modal-tab-btn').forEach(el => el.classList.remove('active'));
-
-            if (tabName === 'add') {
-                document.getElementById('modal-tab-add').classList.add('active');
-                document.getElementById('modal-tab-add-btn').classList.add('active');
-            } else if (tabName === 'daily-select') {
-                document.getElementById('modal-tab-daily-select').classList.add('active');
-                if (event && event.currentTarget) event.currentTarget.classList.add('active');
-                renderModalDailyList();
-            }
-        }
-
-        function renderModalDailyList() {
-            const listContainer = document.getElementById('modal-daily-list');
-            listContainer.innerHTML = '';
-
-            if (dailies.length === 0) {
-                listContainer.innerHTML = '<div style="color:#888; text-align:center; padding: 20px;">「毎日」タブに設定されたタスクがありません。</div>';
-                return;
-            }
-
-            dailies.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'selectable-item';
-                div.innerHTML = `
-                    <div style="font-weight: bold; font-size: 14px;">${escapeHtml(item.text)}</div>
-                    <small style="color: #666;">${item.start || '--:--'} 〜 ${item.end || '--:--'}</small>
-                `;
-                div.onclick = () => selectDailyItemToSchedule(item);
-                listContainer.appendChild(div);
-            });
-        }
-
-        function selectDailyItemToSchedule(item) {
-            document.getElementById('edit-title').value = item.text;
-            if (item.start) setSelectValue('edit-start', item.start);
-            if (item.end) setSelectValue('edit-end', item.end);
-
-            switchModalTab('add');
-        }
-
-        function renderDailies() {
-            const list = document.getElementById('daily-list');
-            list.innerHTML = '';
-            dailies.forEach(item => {
-                const li = document.createElement('li');
-                li.className = 'item-card';
-                li.style.cursor = 'pointer';
-                li.onclick = () => openDailyEditModal(item.id);
-                li.innerHTML = `
-                    <div>
-                        <div style="font-weight:bold;">${escapeHtml(item.text)}</div>
-                        <small style="color:#888;">${item.start || '--:--'} 〜 ${item.end || '--:--'}</small>
-                    </div>
-                    <button class="btn-success" onclick="event.stopPropagation(); directInputSchedule('${escapeHtml(item.text)}', '${item.start}', '${item.end}')">入力</button>
-                `;
-                list.appendChild(li);
-            });
-        }
-
-        function directInputSchedule(title, start, end) {
-            if (!start || !end || start === 'null' || end === 'null') {
-                alert('開始時間と終了時間を設定してください。');
-                return;
-            }
-
-            schedules.push({
-                id: Date.now(),
-                title: title,
-                start: start,
-                end: end
-            });
-
-            renderSchedule();
-        }
-
-        function openDailyCreateModal() {
-            currentDailyEditId = null;
-            document.getElementById('daily-modal-title').innerText = '「毎日」項目の追加';
-            document.getElementById('daily-edit-title').value = '';
-            setSelectValue('daily-edit-start', '');
-            setSelectValue('daily-edit-end', '');
-            document.getElementById('daily-modal-delete-btn').style.display = 'none';
-
-            document.getElementById('daily-edit-modal').classList.add('open');
-        }
-
-        function openDailyEditModal(id) {
-            const item = dailies.find(d => d.id === id);
-            if (!item) return;
-
-            currentDailyEditId = id;
-            document.getElementById('daily-modal-title').innerText = '「毎日」項目の編集';
-            document.getElementById('daily-edit-title').value = item.text;
-            setSelectValue('daily-edit-start', item.start);
-            setSelectValue('daily-edit-end', item.end);
-            document.getElementById('daily-modal-delete-btn').style.display = 'block';
-
-            document.getElementById('daily-edit-modal').classList.add('open');
-        }
-
-        function closeDailyEditModal() {
-            document.getElementById('daily-edit-modal').classList.remove('open');
-            currentDailyEditId = null;
-        }
-
-        function saveDailyEdit() {
-            const title = document.getElementById('daily-edit-title').value;
-            const start = getSelectValue('daily-edit-start');
-            const end = getSelectValue('daily-edit-end');
-
-            if (!title) return;
-
-            if (currentDailyEditId) {
-                const item = dailies.find(d => d.id === currentDailyEditId);
-                if (item) {
-                    item.text = title;
-                    item.start = start;
-                    item.end = end;
-                }
-            } else {
-                dailies.push({
-                    id: Date.now(),
-                    text: title,
-                    start: start,
-                    end: end
-                });
-            }
-
-            closeDailyEditModal();
-            renderDailies();
-        }
-
-        function deleteDailyFromModal() {
-            if (!currentDailyEditId) return;
-            dailies = dailies.filter(d => d.id !== currentDailyEditId);
-            closeDailyEditModal();
-            renderDailies();
-        }
-
-        function renderMonthlies() {
-            const list = document.getElementById('monthly-list');
-            if (!list) return;
-            list.innerHTML = '';
-            monthlies.forEach(item => {
-                const li = document.createElement('li');
-                li.className = 'item-card';
-                li.style.cursor = 'pointer';
-                li.onclick = () => openTimingEditModal('monthly', item.id);
-                li.innerHTML = `
-                    <div>
-                        <div style="font-weight:bold;">${escapeHtml(item.text)}</div>
-                        <small style="color:#888;">${item.start || '--:--'} 〜 ${item.end || '--:--'}${item.timing ? ' (' + escapeHtml(item.timing) + ')' : ''}</small>
-                    </div>
-                    <button class="btn-success" onclick="event.stopPropagation(); directInputSchedule('${escapeHtml(item.text)}', '${item.start}', '${item.end}')">入力</button>
-                `;
-                list.appendChild(li);
-            });
-        }
-
-        function renderRecurrings() {
-            const list = document.getElementById('recurring-list');
-            if (!list) return;
-            list.innerHTML = '';
-            recurrings.forEach(item => {
-                const li = document.createElement('li');
-                li.className = 'item-card';
-                li.style.cursor = 'pointer';
-                li.onclick = () => openTimingEditModal('recurring', item.id);
-                li.innerHTML = `
-                    <div>
-                        <div style="font-weight:bold;">${escapeHtml(item.text)}</div>
-                        <small style="color:#888;">${item.start || '--:--'} 〜 ${item.end || '--:--'}${item.timing ? ' (' + escapeHtml(item.timing) + ')' : ''}</small>
-                    </div>
-                    <button class="btn-success" onclick="event.stopPropagation(); directInputSchedule('${escapeHtml(item.text)}', '${item.start}', '${item.end}')">入力</button>
-                `;
-                list.appendChild(li);
-            });
-        }
-
-        function openMonthlyCreateModal() {
-            openTimingCreateModal('monthly');
-        }
-
-        function openRecurringCreateModal() {
-            openTimingCreateModal('recurring');
-        }
-
-        function openTimingCreateModal(type) {
-            currentTimingType = type;
-            currentTimingEditId = null;
-
-            const label = type === 'monthly' ? '毎月' : '定期';
-            document.getElementById('timing-modal-title').innerText = `「${label}」項目の追加`;
-            document.getElementById('timing-edit-title').value = '';
-            setSelectValue('timing-edit-start', '');
-            setSelectValue('timing-edit-end', '');
-            document.getElementById('timing-edit-value').value = '';
-            document.getElementById('timing-modal-delete-btn').style.display = 'none';
-
-            document.getElementById('timing-task-modal').classList.add('open');
-        }
-
-        function openTimingEditModal(type, id) {
-            currentTimingType = type;
-            currentTimingEditId = id;
-
-            const list = type === 'monthly' ? monthlies : recurrings;
-            const item = list.find(t => t.id === id);
-            if (!item) return;
-
-            const label = type === 'monthly' ? '毎月' : '定期';
-            document.getElementById('timing-modal-title').innerText = `「${label}」項目の編集`;
-            document.getElementById('timing-edit-title').value = item.text;
-            setSelectValue('timing-edit-start', item.start);
-            setSelectValue('timing-edit-end', item.end);
-            document.getElementById('timing-edit-value').value = item.timing || '';
-            document.getElementById('timing-modal-delete-btn').style.display = 'block';
-
-            document.getElementById('timing-task-modal').classList.add('open');
-        }
-
-        function closeTimingModal() {
-            document.getElementById('timing-task-modal').classList.remove('open');
-            currentTimingType = null;
-            currentTimingEditId = null;
-        }
-
-        function saveTimingEdit() {
-            const title = document.getElementById('timing-edit-title').value;
-            const start = getSelectValue('timing-edit-start');
-            const end = getSelectValue('timing-edit-end');
-            const timing = document.getElementById('timing-edit-value').value;
-
-            if (!title) return;
-
-            const targetType = currentTimingType;
-
-            if (targetType === 'monthly') {
-                if (currentTimingEditId) {
-                    const item = monthlies.find(t => t.id === currentTimingEditId);
-                    if (item) {
-                        item.text = title;
-                        item.start = start;
-                        item.end = end;
-                        item.timing = timing;
-                    }
-                } else {
-                    monthlies.push({
-                        id: Date.now(),
-                        text: title,
-                        start: start,
-                        end: end,
-                        timing: timing
-                    });
-                }
-                renderMonthlies();
-            } else if (targetType === 'recurring') {
-                if (currentTimingEditId) {
-                    const item = recurrings.find(t => t.id === currentTimingEditId);
-                    if (item) {
-                        item.text = title;
-                        item.start = start;
-                        item.end = end;
-                        item.timing = timing;
-                    }
-                } else {
-                    recurrings.push({
-                        id: Date.now(),
-                        text: title,
-                        start: start,
-                        end: end,
-                        timing: timing
-                    });
-                }
-                renderRecurrings();
-            }
-
-            closeTimingModal();
-        }
-
-        function deleteTimingFromModal() {
-            if (!currentTimingEditId || !currentTimingType) return;
-
-            if (currentTimingType === 'monthly') {
-                monthlies = monthlies.filter(m => m.id !== currentTimingEditId);
-                renderMonthlies();
-            } else {
-                recurrings = recurrings.filter(r => r.id !== currentTimingEditId);
-                renderRecurrings();
-            }
-
-            closeTimingModal();
-        }
-
-        function addTodo() {
-            const input = document.getElementById('todo-input');
-            const date = document.getElementById('todo-date');
-            if (!input.value) return;
-
-            todos.push({ id: Date.now(), text: input.value, date: date.value });
-            input.value = '';
-            date.value = '';
-            renderTodos();
-        }
-
-        function renderTodos() {
-            const list = document.getElementById('todo-list');
-            list.innerHTML = '';
-            todos.forEach(item => {
-                const li = document.createElement('li');
-                li.className = 'item-card';
-                li.innerHTML = `
-                    <div>
-                        <div>${escapeHtml(item.text)}</div>
-                        <small style="color:#888;">${item.date}</small>
-                    </div>
-                    <button class="btn-danger" onclick="deleteTodo(${item.id})">削除</button>
-                `;
-                list.appendChild(li);
-            });
-        }
-
-        function deleteTodo(id) {
-            todos = todos.filter(item => item.id !== id);
-            renderTodos();
-        }
-
+        // 時間表記（"09:30"など）を0時からの「分」に変換するヘルパー関数
         function timeToMinutes(timeStr) {
-            const [h, m] = timeStr.split(':').map(Number);
-            return h * 60 + m;
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return hours * 60 + minutes;
         }
 
-        function minutesToTime(mins) {
-            let h = Math.floor(mins / 60);
-            let m = mins % 60;
-            if (h >= 24) h = 23;
-            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        // 編集モーダルを開く関数（仮設置）
+        function openEditModal(id) {
+            console.log('編集対象ID:', id);
         }
 
+        // スケジュール描画メイン関数
         function renderSchedule() {
             const grid = document.getElementById('schedule-grid');
             grid.innerHTML = '';
 
+            // 1. 時間軸のガイド線描画（24時間分）
             for (let i = 0; i < 24; i++) {
                 const line = document.createElement('div');
                 line.className = 'time-slot-line';
@@ -952,6 +97,7 @@
                 grid.appendChild(line);
             }
 
+            // 2. 現在時刻線の描画
             const now = new Date();
             const currentMin = now.getHours() * 60 + now.getMinutes();
             const timeLine = document.createElement('div');
@@ -959,227 +105,86 @@
             timeLine.style.top = `${currentMin}px`;
             grid.appendChild(timeLine);
 
+            // 3. 全ての予定を分単位に変換して開始時間順にソート
             const items = schedules.map(s => ({
                 ...s,
                 startMin: timeToMinutes(s.start),
                 endMin: timeToMinutes(s.end)
-            })).sort((a, b) => a.startMin - b.startMin);
+            })).sort((a, b) => a.startMin - b.startMin || (b.endMin - b.startMin) - (a.endMin - a.startMin));
 
-            const columns = [];
-            items.forEach(item => {
-                let placed = false;
-                for (let i = 0; i < columns.length; i++) {
-                    const lastItemInCol = columns[i][columns[i].length - 1];
-                    if (lastItemInCol.endMin <= item.startMin) {
-                        columns[i].push(item);
-                        item.colIndex = i;
-                        placed = true;
-                        break;
-                    }
-                }
-                if (!placed) {
-                    item.colIndex = columns.length;
-                    columns.push([item]);
-                }
-            });
-
-            const gridWidth = grid.clientWidth - 45;
+            // 4. 重なり判定（同じ時間帯に被っている予定をグループ化）
+            const clusters = [];
+            let currentCluster = [];
+            let clusterEnd = -1;
 
             items.forEach(item => {
-                const overlapping = items.filter(other => 
-                    Math.max(item.startMin, other.startMin) < Math.min(item.endMin, other.endMin)
-                );
-                const maxCols = Math.max(...overlapping.map(o => o.colIndex)) + 1;
-
-                const el = document.createElement('div');
-                el.className = 'schedule-item';
-                
-                const top = item.startMin;
-                const height = Math.max(item.endMin - item.startMin, 15);
-                const itemWidth = gridWidth / maxCols;
-                const left = 45 + (itemWidth * item.colIndex);
-
-                el.style.top = `${top}px`;
-                el.style.height = `${height}px`;
-                el.style.width = `${itemWidth}px`;
-                el.style.left = `${left}px`;
-
-                el.innerText = `${item.title} (${item.start}~${item.end})`;
-                el.onclick = (e) => {
-                    e.stopPropagation();
-                    openEditModal(item.id);
-                };
-
-                grid.appendChild(el);
-            });
-        }
-
-        function scrollToCurrentTimeMinusOneHour() {
-            const container = document.getElementById('grid-container');
-            const now = new Date();
-            const currentMin = now.getHours() * 60 + now.getMinutes();
-            const targetMin = Math.max(0, currentMin - 60);
-            container.scrollTop = targetMin;
-        }
-
-        function handleGridClick(event) {
-            const rect = event.currentTarget.getBoundingClientRect();
-            const clickY = event.clientY - rect.top;
-            
-            let startMins = Math.floor(clickY);
-            if (startMins >= 1440) startMins = 1439;
-
-            let hour = Math.floor(startMins / 60);
-            let rawMin = startMins % 60;
-            let roundedMin = rawMin < 30 ? 0 : 30;
-
-            let startMinsFinal = hour * 60 + roundedMin;
-            let endMinsFinal = startMinsFinal + 30;
-            if (endMinsFinal > 1440) endMinsFinal = 1440;
-
-            const startStr = minutesToTime(startMinsFinal);
-            const endStr = minutesToTime(endMinsFinal);
-
-            currentEditId = null;
-            switchModalTab('add');
-            document.getElementById('modal-tab-add-btn').innerText = '予定の追加';
-            document.getElementById('edit-title').value = '';
-            setSelectValue('edit-start', startStr);
-            setSelectValue('edit-end', endStr);
-            document.getElementById('modal-delete-btn').style.display = 'none';
-
-            document.getElementById('edit-modal').classList.add('open');
-        }
-
-        function clearTodaySchedule() {
-            schedules = [];
-            renderSchedule();
-        }
-
-        function openEditModal(id) {
-            const item = schedules.find(s => s.id === id);
-            if (!item) return;
-
-            currentEditId = id;
-            switchModalTab('add');
-            document.getElementById('modal-tab-add-btn').innerText = '予定の編集';
-            document.getElementById('edit-title').value = item.title;
-            setSelectValue('edit-start', item.start);
-            setSelectValue('edit-end', item.end);
-            document.getElementById('modal-delete-btn').style.display = 'block';
-
-            document.getElementById('edit-modal').classList.add('open');
-        }
-
-        function closeModal() {
-            document.getElementById('edit-modal').classList.remove('open');
-            currentEditId = null;
-        }
-
-        function saveScheduleEdit() {
-            const title = document.getElementById('edit-title').value;
-            const start = getSelectValue('edit-start');
-            const end = getSelectValue('edit-end');
-
-            if (!title || !start || !end) return;
-
-            if (currentEditId) {
-                const item = schedules.find(s => s.id === currentEditId);
-                if (item) {
-                    item.title = title;
-                    item.start = start;
-                    item.end = end;
+                if (currentCluster.length === 0 || item.startMin < clusterEnd) {
+                    currentCluster.push(item);
+                    clusterEnd = Math.max(clusterEnd, item.endMin);
+                } else {
+                    clusters.push(currentCluster);
+                    currentCluster = [item];
+                    clusterEnd = item.endMin;
                 }
-            } else {
-                schedules.push({
-                    id: Date.now(),
-                    title: title,
-                    start: start,
-                    end: end
-                });
+            });
+            if (currentCluster.length > 0) {
+                clusters.push(currentCluster);
             }
 
-            closeModal();
-            renderSchedule();
-        }
+            // 5. グループごとに列（カラム）を割り当てて横並びに配置計算
+            const gridWidth = grid.clientWidth - 45;
 
-        function deleteSchedule() {
-            if (!currentEditId) return;
-            schedules = schedules.filter(s => s.id !== currentEditId);
-            closeModal();
-            renderSchedule();
-        }
+            clusters.forEach(cluster => {
+                const columns = [];
 
-        function exportData() {
-            const data = {
-                todos,
-                dailies,
-                monthlies,
-                recurrings,
-                schedules
-            };
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `backup_${new Date().toISOString().slice(0,10)}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
+                cluster.forEach(item => {
+                    let placed = false;
+                    for (let i = 0; i < columns.length; i++) {
+                        const lastInCol = columns[i][columns[i].length - 1];
+                        if (lastInCol.endMin <= item.startMin) {
+                            columns[i].push(item);
+                            item.colIndex = i;
+                            placed = true;
+                            break;
+                        }
+                    }
+                    if (!placed) {
+                        item.colIndex = columns.length;
+                        columns.push([item]);
+                    }
+                });
 
-        function triggerImport() {
-            document.getElementById('import-file').click();
-        }
+                const maxCols = columns.length;
 
-        function importData(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+                cluster.forEach(item => {
+                    const el = document.createElement('div');
+                    el.className = 'schedule-item';
+                    
+                    const top = item.startMin;
+                    const height = Math.max(item.endMin - item.startMin, 18);
+                    const itemWidth = (gridWidth / maxCols) - 2;
+                    const left = 45 + (itemWidth * item.colIndex) + (item.colIndex * 2);
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    if (data.todos) todos = data.todos;
-                    if (data.dailies) dailies = data.dailies;
-                    if (data.monthlies) monthlies = data.monthlies;
-                    if (data.recurrings) recurrings = data.recurrings;
-                    if (data.schedules) schedules = data.schedules;
+                    el.style.top = `${top}px`;
+                    el.style.height = `${height}px`;
+                    el.style.width = `${itemWidth}px`;
+                    el.style.left = `${left}px`;
 
-                    renderTodos();
-                    renderDailies();
-                    renderMonthlies();
-                    renderRecurrings();
-                    renderSchedule();
+                    el.innerText = `${item.title} (${item.start}~${item.end})`;
+                    el.onclick = (e) => {
+                        e.stopPropagation();
+                        openEditModal(item.id);
+                    };
 
-                    alert('データをインポートしました。');
-                } catch (err) {
-                    alert('ファイルの読み込みに失敗しました。正しいJSONファイルを選択してください。');
-                }
-            };
-            reader.readAsText(file);
-        }
-
-        function escapeHtml(str) {
-            if (!str) return '';
-            return str.replace(/[&<>"']/g, function(m) {
-                return {
-                    '&': '&amp;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    '"': '&quot;',
-                    "'": '&#039;'
-                }[m];
+                    grid.appendChild(el);
+                });
             });
         }
 
-        // 初期ロード呼び出し
-        populateTimeSelects();
-        renderTodos();
-        renderDailies();
-        renderMonthlies();
-        renderRecurrings();
-        renderSchedule();
-        setTimeout(scrollToCurrentTimeMinusOneHour, 100);
+        // 画面読み込み時に実行
+        window.onload = () => {
+            renderSchedule();
+        };
     </script>
 </body>
 </html>
