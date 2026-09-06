@@ -53,6 +53,7 @@
             color: #666;
             cursor: pointer;
             border-bottom: 3px solid transparent;
+            text-align: center;
         }
 
         .tab-btn.active {
@@ -65,6 +66,7 @@
             max-width: 600px;
             margin: 0 auto;
             padding: 16px;
+            width: 100%;
         }
 
         .tab-content {
@@ -88,6 +90,7 @@
         /* フォーム要素 */
         .form-group {
             margin-bottom: 12px;
+            width: 100%;
         }
 
         label {
@@ -99,20 +102,28 @@
         }
 
         input[type="text"],
+        input[type="number"],
         input[type="date"],
         input[type="time"],
         select {
-            width: 100%;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
             padding: 10px;
             border: 1px solid var(--border-color);
             border-radius: 6px;
             font-size: 14px;
             background-color: #fff;
+            display: block;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
         }
 
         .form-row {
             display: flex;
             gap: 8px;
+            width: 100%;
         }
 
         .form-row .form-group {
@@ -130,6 +141,17 @@
             font-weight: bold;
             cursor: pointer;
             margin-top: 8px;
+        }
+
+        button.btn-secondary {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
         }
 
         button.btn-danger {
@@ -248,8 +270,9 @@
             <button class="tab-btn active" onclick="switchTab('todo')">TODO</button>
             <button class="tab-btn" onclick="switchTab('daily')">毎日</button>
             <button class="tab-btn" onclick="switchTab('monthly')">毎月</button>
-            <button class="tab-btn" onclick="switchTab('schedule')">予定</button>
+            <button class="tab-btn" onclick="switchTab('recurring')">定期</button>
             <button class="tab-btn" onclick="switchTab('settings')">設定</button>
+            <button class="tab-btn" onclick="switchTab('schedule')">予定</button>
         </nav>
     </header>
 
@@ -305,6 +328,38 @@
             <ul id="monthly-list" class="item-list"></ul>
         </div>
 
+        <!-- 定期 タブ -->
+        <div id="tab-recurring" class="tab-content">
+            <div class="section-header">
+                <h2 class="section-title">定期</h2>
+            </div>
+            <div class="form-group">
+                <label>内容</label>
+                <input type="text" id="recurring-input">
+            </div>
+            <div class="form-group">
+                <label>周期・タイミング</label>
+                <input type="text" id="recurring-timing">
+            </div>
+            <button class="btn-primary" onclick="addRecurring()">追加</button>
+            <ul id="recurring-list" class="item-list"></ul>
+        </div>
+
+        <!-- 設定 タブ -->
+        <div id="tab-settings" class="tab-content">
+            <div class="section-header">
+                <h2 class="section-title">設定</h2>
+            </div>
+            <div style="margin-top: 20px;">
+                <h3 style="font-size: 16px; margin-bottom: 12px;">データ管理</h3>
+                <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                    <button class="btn-secondary" style="flex: 1;" onclick="exportData()">データのエクスポート</button>
+                    <button class="btn-secondary" style="flex: 1;" onclick="triggerImport()">データのインポート</button>
+                </div>
+                <input type="file" id="import-file" style="display: none;" onchange="importData(event)" accept=".json">
+            </div>
+        </div>
+
         <!-- 予定 タブ -->
         <div id="tab-schedule" class="tab-content">
             <div class="section-header">
@@ -317,25 +372,17 @@
             <div class="form-row">
                 <div class="form-group">
                     <label>開始時間</label>
-                    <input type="time" id="schedule-start" step="300">
+                    <input type="time" id="schedule-start" step="300" onchange="roundTo5Minutes(this)">
                 </div>
                 <div class="form-group">
                     <label>終了時間</label>
-                    <input type="time" id="schedule-end" step="300">
+                    <input type="time" id="schedule-end" step="300" onchange="roundTo5Minutes(this)">
                 </div>
             </div>
             <button class="btn-primary" onclick="addSchedule()">予定を追加</button>
             <button class="btn-danger" style="width: 100%; margin-top: 8px;" onclick="clearTodaySchedule()">本日の予定を一括削除</button>
 
             <div id="schedule-grid" class="time-grid"></div>
-        </div>
-
-        <!-- 設定 タブ -->
-        <div id="tab-settings" class="tab-content">
-            <div class="section-header">
-                <h2 class="section-title">設定</h2>
-            </div>
-            <p style="font-size: 14px; color: #666;">設定項目がここに表示されます。</p>
         </div>
     </div>
 
@@ -349,11 +396,11 @@
             </div>
             <div class="form-group">
                 <label>開始時間</label>
-                <input type="time" id="edit-start" step="300">
+                <input type="time" id="edit-start" step="300" onchange="roundTo5Minutes(this)">
             </div>
             <div class="form-group">
                 <label>終了時間</label>
-                <input type="time" id="edit-end" step="300">
+                <input type="time" id="edit-end" step="300" onchange="roundTo5Minutes(this)">
             </div>
             <div class="modal-actions">
                 <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
@@ -368,6 +415,7 @@
         let todos = [];
         let dailies = [];
         let monthlies = [];
+        let recurrings = [];
         let schedules = [];
         let currentEditId = null;
 
@@ -378,6 +426,18 @@
             
             document.getElementById(`tab-${tabName}`).classList.add('active');
             event.currentTarget.classList.add('active');
+        }
+
+        // 入力時間を強制的に5分刻みに丸める処理
+        function roundTo5Minutes(input) {
+            if (!input.value) return;
+            let [h, m] = input.value.split(':').map(Number);
+            m = Math.round(m / 5) * 5;
+            if (m === 60) {
+                h = (h + 1) % 24;
+                m = 0;
+            }
+            input.value = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
         }
 
         // TODO 追加
@@ -482,6 +542,40 @@
             renderMonthlies();
         }
 
+        // 定期 追加
+        function addRecurring() {
+            const input = document.getElementById('recurring-input');
+            const timing = document.getElementById('recurring-timing');
+            if (!input.value) return;
+
+            recurrings.push({ id: Date.now(), text: input.value, timing: timing.value });
+            input.value = '';
+            timing.value = '';
+            renderRecurrings();
+        }
+
+        function renderRecurrings() {
+            const list = document.getElementById('recurring-list');
+            list.innerHTML = '';
+            recurrings.forEach(item => {
+                const li = document.createElement('li');
+                li.className = 'item-card';
+                li.innerHTML = `
+                    <div>
+                        <div>${escapeHtml(item.text)}</div>
+                        <small style="color:#888;">${escapeHtml(item.timing)}</small>
+                    </div>
+                    <button class="btn-danger" onclick="deleteRecurring(${item.id})">削除</button>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        function deleteRecurring(id) {
+            recurrings = recurrings.filter(item => item.id !== id);
+            renderRecurrings();
+        }
+
         // 予定 追加
         function addSchedule() {
             const title = document.getElementById('schedule-title').value;
@@ -504,18 +598,15 @@
             renderSchedule();
         }
 
-        // 時間文字列を分に変換 (e.g. "09:30" -> 570)
         function timeToMinutes(timeStr) {
             const [h, m] = timeStr.split(':').map(Number);
             return h * 60 + m;
         }
 
-        // 予定の重複を計算してレンダリング
         function renderSchedule() {
             const grid = document.getElementById('schedule-grid');
             grid.innerHTML = '';
 
-            // 時間グリッド線を描画
             for (let i = 0; i < 24; i++) {
                 const line = document.createElement('div');
                 line.className = 'time-slot-line';
@@ -524,14 +615,12 @@
                 grid.appendChild(line);
             }
 
-            // 重複計算用のデータを準備
             const items = schedules.map(s => ({
                 ...s,
                 startMin: timeToMinutes(s.start),
                 endMin: timeToMinutes(s.end)
             })).sort((a, b) => a.startMin - b.startMin);
 
-            // 重複グループの作成と位置計算
             const columns = [];
             items.forEach(item => {
                 let placed = false;
@@ -550,9 +639,7 @@
                 }
             });
 
-            // 描画
             items.forEach(item => {
-                // 同じ時間帯に重なっている列数を計算
                 const overlapping = items.filter(other => 
                     Math.max(item.startMin, other.startMin) < Math.min(item.endMin, other.endMin)
                 );
@@ -561,8 +648,8 @@
                 const el = document.createElement('div');
                 el.className = 'schedule-item';
                 
-                const top = item.startMin; // 1分 = 1px
-                const height = Math.max(item.endMin - item.startMin, 15); // 最低高さを確保
+                const top = item.startMin;
+                const height = Math.max(item.endMin - item.startMin, 15);
                 const width = 100 / maxCols;
                 const left = width * item.colIndex;
 
@@ -578,7 +665,6 @@
             });
         }
 
-        // 一括削除（確認ダイアログなし）
         function clearTodaySchedule() {
             schedules = [];
             renderSchedule();
@@ -627,6 +713,56 @@
             schedules = schedules.filter(s => s.id !== currentEditId);
             closeModal();
             renderSchedule();
+        }
+
+        // エクスポート・インポート機能
+        function exportData() {
+            const data = {
+                todos,
+                dailies,
+                monthlies,
+                recurrings,
+                schedules
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `backup_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function triggerImport() {
+            document.getElementById('import-file').click();
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.todos) todos = data.todos;
+                    if (data.dailies) dailies = data.dailies;
+                    if (data.monthlies) monthlies = data.monthlies;
+                    if (data.recurrings) recurrings = data.recurrings;
+                    if (data.schedules) schedules = data.schedules;
+
+                    renderTodos();
+                    renderDailies();
+                    renderMonthlies();
+                    renderRecurrings();
+                    renderSchedule();
+
+                    alert('データをインポートしました。');
+                } catch (err) {
+                    alert('ファイルの読み込みに失敗しました。正しいJSONファイルを選択してください。');
+                }
+            };
+            reader.readAsText(file);
         }
 
         function escapeHtml(str) {
