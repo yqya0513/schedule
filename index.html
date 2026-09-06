@@ -77,16 +77,6 @@
             display: block;
         }
 
-        /* タイトルヘッダー */
-        .section-header {
-            margin-bottom: 16px;
-        }
-
-        .section-title {
-            font-size: 18px;
-            font-weight: bold;
-        }
-
         /* フォーム要素 */
         .form-group {
             margin-bottom: 12px;
@@ -199,7 +189,7 @@
 
         /* スケジュール（予定タブ）表示 */
         .time-grid-container {
-            max-height: calc(100vh - 320px);
+            max-height: calc(100vh - 270px); /* タイトル削除分表示領域を拡大 */
             overflow-y: auto;
             margin-top: 16px;
             border: 1px solid var(--border-color);
@@ -327,9 +317,6 @@
     <div class="container">
         <!-- 予定 タブ -->
         <div id="tab-schedule" class="tab-content active">
-            <div class="section-header">
-                <h2 class="section-title">予定</h2>
-            </div>
             <div class="form-group">
                 <label>内容</label>
                 <input type="text" id="schedule-title">
@@ -360,9 +347,6 @@
 
         <!-- TODO タブ -->
         <div id="tab-todo" class="tab-content">
-            <div class="section-header">
-                <h2 class="section-title">TODO</h2>
-            </div>
             <div class="form-group">
                 <label>内容</label>
                 <input type="text" id="todo-input">
@@ -377,9 +361,6 @@
 
         <!-- 毎日 タブ -->
         <div id="tab-daily" class="tab-content">
-            <div class="section-header">
-                <h2 class="section-title">毎日</h2>
-            </div>
             <div class="form-group">
                 <label>内容</label>
                 <input type="text" id="daily-input">
@@ -394,9 +375,6 @@
 
         <!-- 毎月 タブ -->
         <div id="tab-monthly" class="tab-content">
-            <div class="section-header">
-                <h2 class="section-title">毎月</h2>
-            </div>
             <div class="form-group">
                 <label>内容</label>
                 <input type="text" id="monthly-input">
@@ -411,9 +389,6 @@
 
         <!-- 定期 タブ -->
         <div id="tab-recurring" class="tab-content">
-            <div class="section-header">
-                <h2 class="section-title">定期</h2>
-            </div>
             <div class="form-group">
                 <label>内容</label>
                 <input type="text" id="recurring-input">
@@ -428,10 +403,7 @@
 
         <!-- 設定 タブ -->
         <div id="tab-settings" class="tab-content">
-            <div class="section-header">
-                <h2 class="section-title">設定</h2>
-            </div>
-            <div style="margin-top: 20px;">
+            <div style="margin-top: 8px;">
                 <h3 style="font-size: 16px; margin-bottom: 12px;">データ管理</h3>
                 <div style="display: flex; gap: 8px; margin-bottom: 12px;">
                     <button class="btn-secondary" style="flex: 1;" onclick="exportData()">データのエクスポート</button>
@@ -777,7 +749,7 @@
 
                 el.innerText = `${item.title} (${item.start}~${item.end})`;
                 el.onclick = (e) => {
-                    e.stopPropagation(); // グリッドのクリックイベント発火を防止
+                    e.stopPropagation();
                     openEditModal(item.id);
                 };
 
@@ -790,20 +762,19 @@
             const container = document.getElementById('grid-container');
             const now = new Date();
             const currentMin = now.getHours() * 60 + now.getMinutes();
-            const targetMin = Math.max(0, currentMin - 60); // 1時間（60分）前
+            const targetMin = Math.max(0, currentMin - 60);
             container.scrollTop = targetMin;
         }
 
         // タイムグリッドタップによる予定追加
         function handleGridClick(event) {
             const rect = event.currentTarget.getBoundingClientRect();
-            const clickY = event.clientY - rect.top; // タップしたY座標（px＝分）
+            const clickY = event.clientY - rect.top;
             
-            // 5分単位に丸める
             let startMins = Math.floor(clickY / 5) * 5;
             if (startMins >= 1440) startMins = 1435;
             
-            let endMins = startMins + 30; // 初期表示として30分後に設定
+            let endMins = startMins + 30;
             if (endMins > 1440) endMins = 1440;
 
             const startStr = minutesToTime(startMins);
@@ -852,7 +823,6 @@
             if (!title || !start || !end) return;
 
             if (currentEditId) {
-                // 編集時
                 const item = schedules.find(s => s.id === currentEditId);
                 if (item) {
                     item.title = title;
@@ -860,7 +830,6 @@
                     item.end = end;
                 }
             } else {
-                // タップからの新規追加時
                 schedules.push({
                     id: Date.now(),
                     title: title,
