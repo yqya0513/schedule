@@ -19,7 +19,7 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            touch-action: manipulation; /* ダブルタップズーム防止 */
+            touch-action: manipulation;
         }
 
         body {
@@ -113,6 +113,11 @@
             appearance: none;
         }
 
+        /* スクロール（ドラム風）操作時のカーソルスタイル */
+        select.wheel-scrollable {
+            cursor: ns-resize;
+        }
+
         /* 時間・分を横並びにするレイアウト */
         .time-select-group {
             display: flex;
@@ -190,11 +195,11 @@
             align-items: center;
         }
 
-        /* スケジュール（予定タブ）表示 */
+        /* スケジュール（予定タブ）表示 - 上部入力フォーム削除に伴い高さ領域を拡大 */
         .time-grid-container {
-            max-height: calc(100vh - 270px);
+            max-height: calc(100vh - 170px);
             overflow-y: auto;
-            margin-top: 16px;
+            margin-top: 12px;
             border: 1px solid var(--border-color);
             border-radius: 6px;
             position: relative;
@@ -320,28 +325,7 @@
     <div class="container">
         <!-- 予定 タブ -->
         <div id="tab-schedule" class="tab-content active">
-            <div class="form-group">
-                <label>内容</label>
-                <input type="text" id="schedule-title">
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>開始時間</label>
-                    <div class="time-select-group">
-                        <select id="schedule-start-hour"></select><span>時</span>
-                        <select id="schedule-start-min"></select><span>分</span>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>終了時間</label>
-                    <div class="time-select-group">
-                        <select id="schedule-end-hour"></select><span>時</span>
-                        <select id="schedule-end-min"></select><span>分</span>
-                    </div>
-                </div>
-            </div>
-            <button class="btn-primary" onclick="addSchedule()">予定を追加</button>
-            <button class="btn-danger" style="width: 100%; margin-top: 8px;" onclick="clearTodaySchedule()">本日の予定を一括削除</button>
+            <button class="btn-danger" style="width: 100%;" onclick="clearTodaySchedule()">本日の予定を一括削除</button>
 
             <div class="time-grid-container" id="grid-container">
                 <div id="schedule-grid" class="time-grid" onclick="handleGridClick(event)"></div>
@@ -417,10 +401,10 @@
         </div>
     </div>
 
-    <!-- 予定編集用モーダル -->
+    <!-- 予定追加・編集用モーダル -->
     <div id="edit-modal" class="modal">
         <div class="modal-content">
-            <h3 id="modal-title-text">予定の編集</h3>
+            <h3 id="modal-title-text">予定の追加</h3>
             <div class="form-group" style="margin-top: 12px;">
                 <label>内容</label>
                 <input type="text" id="edit-title">
@@ -428,15 +412,15 @@
             <div class="form-group">
                 <label>開始時間</label>
                 <div class="time-select-group">
-                    <select id="edit-start-hour"></select><span>時</span>
-                    <select id="edit-start-min"></select><span>分</span>
+                    <select id="edit-start-hour" class="wheel-scrollable"></select><span>時</span>
+                    <select id="edit-start-min" class="wheel-scrollable"></select><span>分</span>
                 </div>
             </div>
             <div class="form-group">
                 <label>終了時間</label>
                 <div class="time-select-group">
-                    <select id="edit-end-hour"></select><span>時</span>
-                    <select id="edit-end-min"></select><span>分</span>
+                    <select id="edit-end-hour" class="wheel-scrollable"></select><span>時</span>
+                    <select id="edit-end-min" class="wheel-scrollable"></select><span>分</span>
                 </div>
             </div>
             <div class="modal-actions">
@@ -458,8 +442,8 @@
 
         // 時間・分 ドロップダウンの生成（時間は0〜23、分は5分単位）
         function populateTimeSelects() {
-            const hourIds = ['schedule-start-hour', 'schedule-end-hour', 'edit-start-hour', 'edit-end-hour'];
-            const minIds = ['schedule-start-min', 'schedule-end-min', 'edit-start-min', 'edit-end-min'];
+            const hourIds = ['edit-start-hour', 'edit-end-hour'];
+            const minIds = ['edit-start-min', 'edit-end-min'];
 
             let hourHtml = '<option value="">--</option>';
             for (let h = 0; h < 24; h++) {
@@ -479,6 +463,27 @@
             minIds.forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.innerHTML = minHtml;
+            });
+
+            // マウスホイール/トラックパッドによるドラムスクロール動作の設定
+            document.querySelectorAll('.wheel-scrollable').forEach(selectEl => {
+                selectEl.addEventListener('wheel', function(e) {
+                    e.preventDefault();
+                    if (this.options.length <= 1) return;
+
+                    let index = this.selectedIndex;
+                    if (e.deltaY > 0) {
+                        // 下スクロール
+                        if (index < this.options.length - 1) {
+                            this.selectedIndex = index + 1;
+                        }
+                    } else {
+                        // 上スクロール
+                        if (index > 0) {
+                            this.selectedIndex = index - 1;
+                        }
+                    }
+                }, { passive: false });
             });
         }
 
@@ -650,28 +655,6 @@
             renderRecurrings();
         }
 
-        // 予定 追加
-        function addSchedule() {
-            const title = document.getElementById('schedule-title').value;
-            const start = getSelectValue('schedule-start');
-            const end = getSelectValue('schedule-end');
-
-            if (!title || !start || !end) return;
-
-            schedules.push({
-                id: Date.now(),
-                title: title,
-                start: start,
-                end: end
-            });
-
-            document.getElementById('schedule-title').value = '';
-            setSelectValue('schedule-start', '');
-            setSelectValue('schedule-end', '');
-
-            renderSchedule();
-        }
-
         function timeToMinutes(timeStr) {
             const [h, m] = timeStr.split(':').map(Number);
             return h * 60 + m;
@@ -769,19 +752,26 @@
             container.scrollTop = targetMin;
         }
 
-        // タイムグリッドタップによる予定追加
+        // タイムグリッドタップによる予定追加（初期表示は00分または30分に設定）
         function handleGridClick(event) {
             const rect = event.currentTarget.getBoundingClientRect();
             const clickY = event.clientY - rect.top;
             
-            let startMins = Math.floor(clickY / 5) * 5;
-            if (startMins >= 1440) startMins = 1435;
-            
-            let endMins = startMins + 30;
-            if (endMins > 1440) endMins = 1440;
+            let startMins = Math.floor(clickY); // 1px = 1分
+            if (startMins >= 1440) startMins = 1439;
 
-            const startStr = minutesToTime(startMins);
-            const endStr = minutesToTime(endMins);
+            let hour = Math.floor(startMins / 60);
+            let rawMin = startMins % 60;
+            
+            // タップ位置の「分」を 00 または 30 にまるめる
+            let roundedMin = rawMin < 30 ? 0 : 30;
+
+            let startMinsFinal = hour * 60 + roundedMin;
+            let endMinsFinal = startMinsFinal + 30;
+            if (endMinsFinal > 1440) endMinsFinal = 1440;
+
+            const startStr = minutesToTime(startMinsFinal);
+            const endStr = minutesToTime(endMinsFinal);
 
             currentEditId = null;
             document.getElementById('modal-title-text').innerText = '予定の追加';
