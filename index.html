@@ -12,6 +12,7 @@
             --text-color: #333333;
             --border-color: #e1e8ed;
             --danger-color: #e74c3c;
+            --success-color: #2ecc71;
         }
 
         * {
@@ -161,6 +162,17 @@
             font-size: 12px;
         }
 
+        button.btn-success {
+            background-color: var(--success-color);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
         .item-list {
             list-style: none;
             margin-top: 16px;
@@ -239,7 +251,6 @@
             z-index: 10;
         }
 
-        /* モーダルデザイン */
         .modal {
             display: none;
             position: fixed;
@@ -265,7 +276,6 @@
             max-width: 400px;
         }
 
-        /* モーダル内切り替えタブ */
         .modal-tab-nav {
             display: flex;
             border-bottom: 2px solid var(--border-color);
@@ -432,7 +442,7 @@
         </div>
     </div>
 
-    <!-- 予定追加・編集用モーダル（毎日タブ連携機能付き） -->
+    <!-- 予定追加・編集用モーダル -->
     <div id="edit-modal" class="modal">
         <div class="modal-content">
             <div class="modal-tab-nav">
@@ -477,6 +487,36 @@
         </div>
     </div>
 
+    <!-- 毎日タスク編集用モーダル -->
+    <div id="daily-edit-modal" class="modal">
+        <div class="modal-content">
+            <h3>「毎日」項目の編集</h3>
+            <div class="form-group" style="margin-top: 12px;">
+                <label>内容</label>
+                <input type="text" id="daily-edit-title">
+            </div>
+            <div class="form-group">
+                <label>開始時間</label>
+                <div class="time-select-group">
+                    <select id="daily-edit-start-hour" class="wheel-scrollable"></select><span>時</span>
+                    <select id="daily-edit-start-min" class="wheel-scrollable"></select><span>分</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>終了時間</label>
+                <div class="time-select-group">
+                    <select id="daily-edit-end-hour" class="wheel-scrollable"></select><span>時</span>
+                    <select id="daily-edit-end-min" class="wheel-scrollable"></select><span>分</span>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeDailyEditModal()">キャンセル</button>
+                <button class="btn-danger" onclick="deleteDailyFromModal()">削除</button>
+                <button class="btn-primary" style="margin-top:0;" onclick="saveDailyEdit()">保存</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let todos = [];
         let dailies = [];
@@ -484,11 +524,11 @@
         let recurrings = [];
         let schedules = [];
         let currentEditId = null;
+        let currentDailyEditId = null;
 
-        // 時間・分 ドロップダウンの生成
         function populateTimeSelects() {
-            const hourIds = ['edit-start-hour', 'edit-end-hour', 'daily-start-hour', 'daily-end-hour'];
-            const minIds = ['edit-start-min', 'edit-end-min', 'daily-start-min', 'daily-end-min'];
+            const hourIds = ['edit-start-hour', 'edit-end-hour', 'daily-start-hour', 'daily-end-hour', 'daily-edit-start-hour', 'daily-edit-end-hour'];
+            const minIds = ['edit-start-min', 'edit-end-min', 'daily-start-min', 'daily-end-min', 'daily-edit-start-min', 'daily-edit-end-min'];
 
             let hourHtml = '<option value="">--</option>';
             for (let h = 0; h < 24; h++) {
@@ -510,7 +550,6 @@
                 if (el) el.innerHTML = minHtml;
             });
 
-            // マウスホイール/トラックパッドでのドラムスクロール動作の設定
             document.querySelectorAll('.wheel-scrollable').forEach(selectEl => {
                 selectEl.addEventListener('wheel', function(e) {
                     e.preventDefault();
@@ -556,7 +595,6 @@
             }
         }
 
-        // モーダル内タブ切り替え機能
         function switchModalTab(tabName) {
             document.querySelectorAll('.modal-tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.modal-tab-btn').forEach(el => el.classList.remove('active'));
@@ -571,7 +609,6 @@
             }
         }
 
-        // モーダル内の毎日タスク一覧を表示
         function renderModalDailyList() {
             const listContainer = document.getElementById('modal-daily-list');
             listContainer.innerHTML = '';
@@ -593,7 +630,6 @@
             });
         }
 
-        // 毎日タスクを選択して予定追加フォームへ反映
         function selectDailyItemToSchedule(item) {
             document.getElementById('edit-title').value = item.text;
             if (item.start) setSelectValue('edit-start', item.start);
@@ -623,19 +659,80 @@
             dailies.forEach(item => {
                 const li = document.createElement('li');
                 li.className = 'item-card';
+                li.style.cursor = 'pointer';
+                li.onclick = () => openDailyEditModal(item.id);
                 li.innerHTML = `
                     <div>
                         <div style="font-weight:bold;">${escapeHtml(item.text)}</div>
                         <small style="color:#888;">${item.start || '--:--'} 〜 ${item.end || '--:--'}</small>
                     </div>
-                    <button class="btn-danger" onclick="deleteDaily(${item.id})">削除</button>
+                    <button class="btn-success" onclick="event.stopPropagation(); directInputSchedule(${item.id})">入力</button>
                 `;
                 list.appendChild(li);
             });
         }
 
-        function deleteDaily(id) {
-            dailies = dailies.filter(item => item.id !== id);
+        // 毎日タブの「入力」ボタンで直接予定表に反映
+        function directInputSchedule(id) {
+            const item = dailies.find(d => d.id === id);
+            if (!item) return;
+
+            if (!item.start || !item.end) {
+                alert('開始時間と終了時間を設定してください。');
+                return;
+            }
+
+            schedules.push({
+                id: Date.now(),
+                title: item.text,
+                start: item.start,
+                end: item.end
+            });
+
+            renderSchedule();
+            alert(`「${item.text}」を予定表に追加しました。`);
+        }
+
+        // 毎日項目編集モーダル
+        function openDailyEditModal(id) {
+            const item = dailies.find(d => d.id === id);
+            if (!item) return;
+
+            currentDailyEditId = id;
+            document.getElementById('daily-edit-title').value = item.text;
+            setSelectValue('daily-edit-start', item.start);
+            setSelectValue('daily-edit-end', item.end);
+
+            document.getElementById('daily-edit-modal').classList.add('open');
+        }
+
+        function closeDailyEditModal() {
+            document.getElementById('daily-edit-modal').classList.remove('open');
+            currentDailyEditId = null;
+        }
+
+        function saveDailyEdit() {
+            const title = document.getElementById('daily-edit-title').value;
+            const start = getSelectValue('daily-edit-start');
+            const end = getSelectValue('daily-edit-end');
+
+            if (!title) return;
+
+            const item = dailies.find(d => d.id === currentDailyEditId);
+            if (item) {
+                item.text = title;
+                item.start = start;
+                item.end = end;
+            }
+
+            closeDailyEditModal();
+            renderDailies();
+        }
+
+        function deleteDailyFromModal() {
+            if (!currentDailyEditId) return;
+            dailies = dailies.filter(d => d.id !== currentDailyEditId);
+            closeDailyEditModal();
             renderDailies();
         }
 
